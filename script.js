@@ -381,6 +381,16 @@ function showResult() {
     if (textarea) {
         textarea.value = shareText;
     }
+
+    // デイリーモードのみシェア・コピー機能を表示する
+    const copyContainer = document.getElementById("result-copy-container");
+    if (gameMode === "daily") {
+        shareBtn.classList.remove("d-none");
+        if (copyContainer) copyContainer.classList.remove("d-none");
+    } else {
+        shareBtn.classList.add("d-none");
+        if (copyContainer) copyContainer.classList.add("d-none");
+    }
 }
 
 // UI Event Listeners

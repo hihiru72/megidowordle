@@ -93,7 +93,7 @@ main {
     flex-direction: column;
     align-items: center;
     padding: 20px 10px;
-    padding-bottom: 80px; /* 入力欄下にスライド用の余白を確保 */
+    padding-bottom: 40px; /* ボード下部の余白 */
     overflow-y: auto;
 }
 
@@ -228,12 +228,22 @@ main {
     40%, 60% { transform: translate3d(4px, 0, 0); }
 }
 
+#bottom-controls {
+    padding: 15px 10px;
+    background-color: var(--bg-color);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    z-index: 10;
+}
+
 #input-container {
     display: flex;
     width: 100%;
     max-width: 400px;
     gap: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 0;
 }
 
 #guess-input {
@@ -270,7 +280,7 @@ main {
     display: flex;
     width: 100%;
     max-width: 400px;
-    margin-bottom: 20px;
+    margin-bottom: 0;
 }
 
 #play-again-btn {
@@ -368,6 +378,8 @@ main {
     padding: 30px;
     max-width: 90%;
     width: 400px;
+    max-height: 85vh;
+    overflow-y: auto;
     text-align: center;
     box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     transform: translateY(0);

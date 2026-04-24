@@ -30,6 +30,9 @@
                 <div id="board"></div>
             </div>
 
+        </main>
+        
+        <div id="bottom-controls">
             <div id="input-container">
                 <input type="text" id="guess-input" placeholder="カタカナで入力..." autocomplete="off">
                 <button id="submit-btn">あてる</button>
@@ -37,7 +40,7 @@
             <div id="play-again-container" class="d-none">
                 <button id="play-again-btn">もう一回あそぶ（フリーモード）</button>
             </div>
-        </main>
+        </div>
     </div>
 
     <div id="result-modal" class="modal hidden">
@@ -46,15 +49,16 @@
             <p id="result-target-word"></p>
             <div id="result-stats"></div>
             
+            <button id="share-btn">Twitterでシェア 🐦</button>
+            <button id="next-btn" class="d-none">もう一度遊ぶ</button>
+
             <!-- 手動コピー用エリア -->
-            <div id="result-copy-container" style="margin-top: 10px; margin-bottom: 15px; text-align: left;">
+            <div id="result-copy-container" style="margin-top: 20px; margin-bottom: 10px; text-align: left;">
                 <p style="font-size: 12px; margin-bottom: 5px; color: #a1a1aa;">SNSなどへの貼り付け用</p>
                 <textarea id="result-textarea" readonly style="width: 100%; height: 90px; padding: 10px; background: #272729; color: white; border: 1px solid var(--border-color); border-radius: 5px; resize: none; font-size: 11px; font-family: monospace;"></textarea>
                 <button id="copy-text-btn" style="width: 100%; padding: 8px; margin-top: 5px; background: var(--correct-color); color: white; font-weight: bold; border-radius: 5px; border: none; cursor: pointer;">結果をコピーする</button>
             </div>
 
-            <button id="share-btn">Twitterでシェア 🐦</button>
-            <button id="next-btn" class="d-none">もう一度遊ぶ</button>
             <button id="close-modal-btn">閉じる</button>
         </div>
     </div>
