@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>メギドWordle</title>
+    <meta name="description" content="メギド72のキャラクター名を当てるWordle風ゲーム">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <header>
+            <div class="menu-left">
+                <button id="help-btn">❓</button>
+                <button id="giveup-btn" title="あきらめて答えを見る" style="margin-left: 15px; font-size: 20px;">🏳️</button>
+            </div>
+            <h1>メギドWordle</h1>
+            <div class="menu-right">
+                <button id="mode-btn">モード: デイリー 🔄</button>
+            </div>
+        </header>
+
+        <div id="message-container"></div>
+
+        <main>
+            <div id="hint-container">
+                <span id="hint-text">本日の文字数: <strong id="word-length-hint">0</strong>文字</span>
+            </div>
+            <div id="board-container">
+                <div id="board"></div>
+            </div>
+
+            <div id="input-container">
+                <input type="text" id="guess-input" placeholder="カタカナで入力..." autocomplete="off">
+                <button id="submit-btn">あてる</button>
+            </div>
+            <div id="play-again-container" class="d-none">
+                <button id="play-again-btn">もう一回あそぶ（フリーモード）</button>
+            </div>
+        </main>
+    </div>
+
+    <div id="result-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="result-title">ゲームクリア！</h2>
+            <p id="result-target-word"></p>
+            <div id="result-stats"></div>
+            <button id="share-btn">結果をシェア 🐦</button>
+            <button id="next-btn" class="d-none">もう一度遊ぶ</button>
+            <button id="close-modal-btn">閉じる</button>
+        </div>
+    </div>
+
+    <div id="help-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>遊び方</h2>
+            <p>メギド72のキャラクターの名前を当てよう！</p>
+            <p>推測できる回数は<strong>10回</strong>です。</p>
+            <p>推測するたびに、マスの色が変わり、正解にどれだけ近いかがわかります。（※以下の例の正解は「マルコシアス」です）</p>
+            <div class="help-examples">
+                <div class="help-example">
+                    <div class="tile-row">
+                        <div class="tile correct">マ</div>
+                        <div class="tile">ル</div>
+                        <div class="tile">バ</div>
+                        <div class="tile">ス</div>
+                    </div>
+                    <p><strong>マ</strong> は名前の中に含まれており、位置も合っています。</p>
+                </div>
+                <div class="help-example">
+                    <div class="tile-row">
+                        <div class="tile present">ス</div>
+                        <div class="tile">ト</div>
+                        <div class="tile">ラ</div>
+                        <div class="tile">ス</div>
+                    </div>
+                    <p>最初の <strong>ス</strong> は名前の中に含まれていますが、位置が違います。</p>
+                </div>
+                <div class="help-example">
+                    <div class="tile-row">
+                        <div class="tile absent">ブ</div>
+                        <div class="tile">ネ</div>
+                    </div>
+                    <p><strong>ブ</strong> は名前に含まれていません。</p>
+                </div>
+            </div>
+            <button id="show-list-btn" style="margin-top: 15px; width: 100%; padding: 10px; background-color: var(--primary-color); color: #000; font-weight: bold; border-radius: 5px;">メギド名簿を確認する</button>
+            <button id="close-help-btn" style="margin-top: 10px;">閉じる</button>
+        </div>
+    </div>
+
+    <div id="list-modal" class="modal hidden">
+        <div class="modal-content" style="max-height: 85vh; overflow-y: auto;">
+            <h2>メギド名簿</h2>
+            <p style="font-size: 14px; margin-bottom: 10px;">ゲーム内では、末尾の「R」「B」「C」等のリジェネレイト表記を省いた名前のみを使用します。</p>
+            <div id="megido-list-container"></div>
+            <button id="close-list-btn" style="margin-top: 20px;">閉じる</button>
+        </div>
+    </div>
+
+    <!-- スクリプトの読み込み -->
+    <script src="characters.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
