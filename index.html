@@ -11,14 +11,14 @@
     <div id="game-container">
         <header>
             <div class="menu-left">
-                <button id="help-btn">❓</button>
-                <button id="giveup-btn" title="あきらめて答えを見る" style="margin-left: 15px; font-size: 20px;">🏳️</button>
+                <button id="help-btn"><span class="btn-icon">❓</span><span class="btn-label">遊び方</span></button>
             </div>
             <h1>メギドWordle</h1>
             <div class="menu-right">
-                <button id="mode-btn">モード切替<br>(現在デイリー)</button>
+                <button id="mode-btn">モード切替</button>
             </div>
         </header>
+        <div id="mode-subtitle">📅 デイリーモード</div>
 
         <div id="message-container"></div>
 
@@ -34,8 +34,10 @@
         
         <div id="bottom-controls">
             <div id="input-container">
+                <button id="giveup-btn"><span class="btn-icon">🏳️</span><span class="btn-label">降参</span></button>
                 <input type="text" id="guess-input" placeholder="カタカナで入力..." autocomplete="off">
                 <button id="submit-btn">あてる</button>
+                <button id="list-btn" title="メギド一覧">📋</button>
             </div>
             <div id="play-again-container" class="d-none">
                 <button id="play-again-btn">もう一回あそぶ（フリーモード）</button>
@@ -48,6 +50,9 @@
             <h2 id="result-title">ゲームクリア！</h2>
             <p id="result-target-word"></p>
             <div id="result-stats"></div>
+
+            <!-- フリーモード：チェイン・ストリーク表示 -->
+            <div id="streak-info" class="d-none"></div>
             
             <button id="share-btn">Twitterでシェア 🐦</button>
             <button id="next-btn" class="d-none">もう一度遊ぶ</button>
@@ -96,7 +101,6 @@
                     <p><strong>ブ</strong> は名前に含まれていません。</p>
                 </div>
             </div>
-            <button id="show-list-btn" style="margin-top: 15px; width: 100%; padding: 10px; background-color: var(--primary-color); color: #000; font-weight: bold; border-radius: 5px;">メギドの一覧を確認する</button>
             <button id="close-help-btn" style="margin-top: 10px;">閉じる</button>
         </div>
     </div>

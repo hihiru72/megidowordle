@@ -6,6 +6,11 @@ let gameMode = "daily"; // 'daily' or 'free'
 let gameStatus = "IN_PROGRESS"; // 'IN_PROGRESS', 'WIN', 'FAIL'
 let resultTimer = null;
 
+// フリーモード連続正解ストリーク
+let freeStreak = 0;
+let freeMaxStreak = 0;
+let freeLastStreak = 0; // 失敗直前のストリークを保存する用
+
 // DOM Elements
 const board = document.getElementById("board");
 const guessInput = document.getElementById("guess-input");
@@ -27,7 +32,8 @@ const inputContainer = document.getElementById("input-container");
 const playAgainContainer = document.getElementById("play-again-container");
 const playAgainBtn = document.getElementById("play-again-btn");
 const listModal = document.getElementById("list-modal");
-const showListBtn = document.getElementById("show-list-btn");
+const showListBtn = document.getElementById("show-list-btn"); // 遠び方モーダル内のボタン（残存局止変数）
+const listBtn = document.getElementById("list-btn"); // 入力欄横のボタン
 const closeListBtn = document.getElementById("close-list-btn");
 const megidoListContainer = document.getElementById("megido-list-container");
 
@@ -71,6 +77,24 @@ function getDailyTarget() {
 function getRandomTarget() {
     const index = Math.floor(Math.random() * MEGIDO_CHARACTERS.length);
     return MEGIDO_CHARACTERS[index];
+}
+
+// フリーモードストリークの読み込み
+function loadFreeStreak() {
+    const saved = localStorage.getItem("megido-wordle-streak");
+    if (saved) {
+        const data = JSON.parse(saved);
+        freeStreak = data.streak || 0;
+        freeMaxStreak = data.maxStreak || 0;
+    }
+}
+
+// フリーモードストリークの保存
+function saveFreeStreak() {
+    localStorage.setItem("megido-wordle-streak", JSON.stringify({
+        streak: freeStreak,
+        maxStreak: freeMaxStreak
+    }));
 }
 
 function initGame() {
@@ -168,6 +192,8 @@ function updateCurrentRowUI() {
     for (let i = 0; i < MAX_WORD_LENGTH; i++) {
         const tile = document.getElementById(`tile-${rowIdx}-${i}`);
         if (!tile) continue;
+        // シェイクアニメーションの残留をクリア（次の入力時に再シェイクしないように）
+        tile.classList.remove("shake");
         tile.textContent = currentGuess[i] || "";
         if (currentGuess[i] && i < targetWord.length) {
             tile.setAttribute("data-state", "tbd");
@@ -310,10 +336,22 @@ async function handleSubmit() {
 
     if (guessToEval === targetWord) {
         gameStatus = "WIN";
+        // フリーモードのストリークを更新
+        if (gameMode === "free") {
+            freeStreak++;
+            if (freeStreak > freeMaxStreak) freeMaxStreak = freeStreak;
+            saveFreeStreak();
+        }
         bounceCurrentRow(rowIdx);
         resultTimer = setTimeout(showResult, 1150);
     } else if (guesses.length >= GAME_MAX_GUESSES) {
         gameStatus = "FAIL";
+        // フリーモードのストリークをリセット
+        if (gameMode === "free") {
+            freeLastStreak = freeStreak; // リセット前に今回のチェイン数を保存
+            freeStreak = 0;
+            saveFreeStreak();
+        }
         resultTimer = setTimeout(showResult, 1150);
     }
 
@@ -374,11 +412,13 @@ function updateUI() {
     }
     
     if (gameMode === "daily") {
-        modeBtn.innerHTML = "モード切替<br>(現在デイリー)";
+        modeBtn.textContent = "モード切替";
+        document.getElementById("mode-subtitle").textContent = "📅 デイリーモード";
         nextBtn.textContent = "フリーモードで遊ぶ";
         nextBtn.classList.remove("d-none");
     } else {
-        modeBtn.innerHTML = "モード切替<br>(現在フリー)";
+        modeBtn.textContent = "モード切替";
+        document.getElementById("mode-subtitle").textContent = `🎮 フリーモード｜チェイン ${freeStreak} ♪最大 ${freeMaxStreak}`;
         nextBtn.textContent = "もう一度遊ぶ";
         nextBtn.classList.remove("d-none");
     }
@@ -389,7 +429,17 @@ function showResult() {
     playAgainContainer.classList.remove("d-none");
     resultModal.classList.remove("hidden");
     resultTitle.textContent = gameStatus === "WIN" ? "勝算がある！" : "残念...";
-    resultTargetWord.textContent = targetWord;
+    
+    // MEGIDO_LISTからIDを取得して番号付きで表示
+    const megidoInfo = MEGIDO_LIST.find(m => {
+        const baseName = m.name.replace(/[RBC]$/, "");
+        return baseName === targetWord;
+    });
+    if (megidoInfo) {
+        resultTargetWord.innerHTML = `<span style="font-size:13px; color:#a1a1aa; letter-spacing:1px;">${megidoInfo.id}</span><br>${targetWord}`;
+    } else {
+        resultTargetWord.textContent = targetWord;
+    }
     
     // コピペ用のテキストエリアに結果を設定
     const shareText = generateShareText();
@@ -400,12 +450,56 @@ function showResult() {
 
     // デイリーモードのみシェア・コピー機能を表示する
     const copyContainer = document.getElementById("result-copy-container");
+    const streakInfo = document.getElementById("streak-info");
     if (gameMode === "daily") {
         shareBtn.classList.remove("d-none");
         if (copyContainer) copyContainer.classList.remove("d-none");
+        if (streakInfo) streakInfo.classList.add("d-none");
     } else {
-        shareBtn.classList.add("d-none");
-        if (copyContainer) copyContainer.classList.add("d-none");
+        // フリーモード：Twitterシェアとコピー機能は両方表示、ストリークも表示
+        shareBtn.classList.remove("d-none");
+        if (copyContainer) copyContainer.classList.remove("d-none");
+        if (streakInfo) {
+            if (gameStatus === "WIN" && freeStreak >= 2) {
+                // 2回以上連続正解：チェイン表示
+                streakInfo.innerHTML = `
+                    <div class="chain-number">${freeStreak - 1}</div>
+                    <div class="chain-label">チェイン！</div>
+                    <div class="streak-stats">
+                        <div class="streak-stat-item">
+                            <span class="streak-stat-value">${freeStreak}</span>
+                            <span>現在チェイン数</span>
+                        </div>
+                        <div class="streak-stat-item">
+                            <span class="streak-stat-value">${freeMaxStreak}</span>
+                            <span>最大チェイン</span>
+                        </div>
+                    </div>`;
+            } else if (gameStatus === "WIN") {
+                // 初勝利：チェインスタート
+                streakInfo.innerHTML = `
+                    <div class="chain-label">🏆 チェインスタート！</div>
+                    <div class="streak-stats">
+                        <div class="streak-stat-item">
+                            <span class="streak-stat-value">${freeMaxStreak}</span>
+                            <span>最大チェイン</span>
+                        </div>
+                    </div>`;
+            } else {
+                // 敗北：チェイン終了
+                streakInfo.innerHTML = `
+                    <div class="chain-label">💥 チェイン終了</div>
+                    <div class="streak-stats">
+                        <div class="streak-stat-item">
+                            <span class="streak-stat-value">${freeMaxStreak}</span>
+                            <span>最大チェイン</span>
+                        </div>
+                    </div>`;
+            }
+            streakInfo.classList.remove("d-none");
+        }
+        // フリーモードのサブタイトルを更新
+        document.getElementById("mode-subtitle").textContent = `🎮 フリーモード｜チェイン ${freeStreak} ♪最大 ${freeMaxStreak}`;
     }
 }
 
@@ -442,29 +536,35 @@ closeHelpBtn.addEventListener("click", () => {
     helpModal.classList.add("hidden");
 });
 
-showListBtn.addEventListener("click", () => {
-    helpModal.classList.add("hidden");
-    
-    // まだリストがレンダリングされていなければ生成する
-    if (megidoListContainer.innerHTML === "") {
-        let currentCategory = "";
-        let html = "";
-        MEGIDO_LIST.forEach(m => {
-            const cat = m.id.charAt(0);
-            if (cat !== currentCategory) {
-                currentCategory = cat;
-                html += `<h3 style="margin-top: 15px; border-bottom: 1px solid var(--primary-color); color: var(--primary-color); padding-bottom: 5px;">【${cat}】</h3>`;
-            }
-            // リジェネレイトの識別として、元の名前にR/B/Cが含まれているかを強調してもよい
-            html += `<div class="megido-list-item">
-                        <span class="megido-id">${m.id}</span> 
-                        <span class="megido-name">${m.name}</span>
-                     </div>`;
-        });
-        megidoListContainer.innerHTML = html;
-    }
+// 入力欄横の一覧ボタンのイベントリスナー
+function openListModal() {
+    // リストを常に再生成して既入力名を色付ける
+    let currentCategory = "";
+    let html = "";
+    MEGIDO_LIST.forEach(m => {
+        const cat = m.id.charAt(0);
+        if (cat !== currentCategory) {
+            currentCategory = cat;
+            html += `<h3 style="margin-top: 15px; border-bottom: 1px solid var(--primary-color); color: var(--primary-color); padding-bottom: 5px;">【${cat}】</h3>`;
+        }
+        // 既に入力したメギドは太字の紫で表示
+        const baseName = m.name.replace(/[RBC]$/, "");
+        const isGuessed = guesses.includes(baseName);
+        const nameStyle = isGuessed ? "font-weight: bold; color: #a855f7;" : "";
+        html += `<div class="megido-list-item">
+                    <span class="megido-id">${m.id}</span> 
+                    <span class="megido-name" style="${nameStyle}">${m.name}</span>
+                 </div>`;
+    });
+    megidoListContainer.innerHTML = html;
     listModal.classList.remove("hidden");
-});
+}
+
+if (listBtn) {
+    listBtn.addEventListener("click", () => {
+        openListModal();
+    });
+}
 
 closeListBtn.addEventListener("click", () => {
     listModal.classList.add("hidden");
@@ -494,9 +594,24 @@ nextBtn.addEventListener("click", () => {
 
 // Share logic
 function generateShareText() {
-    const title = `メギドWordle (${gameMode === "daily" ? "デイリー" : "フリー"})`;
+    const title = `メギドWordle (${gameMode === "daily" ? "デイリーモード" : "フリーモード"})`;
     const attempt = gameStatus === "WIN" ? guesses.length : "X";
-    const header = `${title} ${attempt}/${GAME_MAX_GUESSES}\n\n`;
+    const header = `${title} ${attempt}/${GAME_MAX_GUESSES}\n`;
+
+    // フリーモードの場合は「正解：名前　(チェイン)」行を追加
+    let extraLine = "";
+    if (gameMode === "free") {
+        let chainText;
+        if (gameStatus === "WIN" && freeStreak >= 2) {
+            chainText = `${freeStreak - 1}チェイン！（最大${freeMaxStreak}チェイン）`;
+        } else if (gameStatus === "WIN") {
+            chainText = "チェインスタート！";
+        } else {
+            // 失敗時：保存した今回のチェイン数と最大を表示
+            chainText = `チェイン終了（チェイン数：${freeLastStreak}　最大チェイン：${freeMaxStreak}）`;
+        }
+        extraLine = `正解：${targetWord}　${chainText}\n`;
+    }
     
     let lines = new Array(GAME_MAX_GUESSES).fill("");
     
@@ -532,7 +647,7 @@ function generateShareText() {
     }
 
     const url = "https://megidowordle.vercel.app/";
-    return `${header}${grid}\n#メギド72 #メギドWordle\n${url}`;
+    return `${header}${extraLine}\n${grid}\n#メギド72 #メギドWordle\n${url}`;
 }
 
 shareBtn.addEventListener("click", () => {
@@ -564,4 +679,5 @@ if (copyTextBtn) {
 }
 
 // Initialize
+loadFreeStreak(); // ストリークをlocalStorageから復元
 initGame();

@@ -67,20 +67,64 @@ button {
 }
 
 #help-btn {
-    font-size: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+#giveup-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    padding: 0 8px;
+    background-color: #272729;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+}
+
+#help-btn:hover, #giveup-btn:hover {
+    background-color: #3a3a3c;
+}
+
+.btn-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.btn-label {
+    font-size: 9px;
+    color: #a1a1aa;
+    white-space: nowrap;
 }
 
 #mode-btn {
     background-color: var(--primary-color);
     color: #000;
-    padding: 4px 10px;
-    border-radius: 12px;
+    padding: 6px 12px;
+    border-radius: 16px;
     font-weight: bold;
-    font-size: 12px;
-    line-height: 1.2;
-    text-align: center;
+    font-size: 13px;
     white-space: nowrap;
     transition: background-color 0.2s;
+}
+
+/* モードサブタイトル（タイトル直下） */
+#mode-subtitle {
+    text-align: center;
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--primary-color);
+    letter-spacing: 1px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-color);
 }
 
 #mode-btn:hover {
@@ -92,8 +136,8 @@ main {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 20px 10px;
-    padding-bottom: 40px; /* ボード下部の余白 */
+    padding: 10px 10px; /* 20pxから10pxへ */
+    padding-bottom: 20px; /* 40pxから20pxへ */
     overflow-y: auto;
 }
 
@@ -115,7 +159,7 @@ main {
     align-items: center;
     flex-grow: 1;
     width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 10px; /* 20pxから10pxへ */
 }
 
 #board {
@@ -229,7 +273,7 @@ main {
 }
 
 #bottom-controls {
-    padding: 15px 10px;
+    padding: 10px 10px; /* 15pxから10pxへ */
     background-color: var(--bg-color);
     border-top: 1px solid var(--border-color);
     display: flex;
@@ -242,14 +286,17 @@ main {
     display: flex;
     width: 100%;
     max-width: 400px;
-    gap: 10px;
+    gap: 6px;
     margin-bottom: 0;
+    flex-wrap: nowrap; /* 改行を防ぐ */
+    align-items: stretch;
 }
 
 #guess-input {
     flex-grow: 1;
-    padding: 12px 16px;
-    font-size: 18px;
+    min-width: 0; /* flexで收縮できるように */
+    padding: 10px 10px;
+    font-size: 16px;
     border-radius: 8px;
     border: 1px solid var(--border-color);
     background-color: #272729;
@@ -265,15 +312,34 @@ main {
 #submit-btn {
     background-color: var(--primary-color);
     color: #000;
-    padding: 0 20px;
-    font-size: 16px;
+    padding: 0 14px;
+    font-size: 14px;
     font-weight: bold;
     border-radius: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
     transition: transform 0.1s, background-color 0.2s;
 }
 
 #submit-btn:active {
     transform: scale(0.95);
+}
+
+/* メギド一覧ボタン（あてるボタン横） */
+#list-btn {
+    background-color: #272729;
+    color: var(--primary-color);
+    border: 1px solid var(--border-color);
+    padding: 0 12px;
+    font-size: 18px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+#list-btn:hover {
+    background-color: #3a3a3c;
 }
 
 #play-again-container {
@@ -324,8 +390,8 @@ main {
 }
 
 #message-container {
-    position: absolute;
-    top: 70px;
+    position: fixed;
+    bottom: 90px; /* 入力バーの直上に表示 */
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000;
@@ -333,6 +399,9 @@ main {
     flex-direction: column;
     align-items: center;
     gap: 8px;
+    pointer-events: none;
+    width: 90%;
+    max-width: 400px;
 }
 
 .message {
@@ -461,6 +530,53 @@ main {
     border-color: #2a2a2c;
     color: #4a4a4c;
     opacity: 0.5;
+}
+
+/* フリーモード チェイン・ストリーク表示 */
+#streak-info {
+    margin: 12px 0;
+    padding: 14px;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border: 1px solid var(--primary-color);
+    border-radius: 10px;
+    text-align: center;
+}
+
+.chain-number {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--primary-color);
+    line-height: 1;
+    text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+}
+
+.chain-label {
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 8px;
+}
+
+.streak-stats {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.streak-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.streak-stat-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
 }
 
 /* スマホ向けのレスポンシブ調整 */
