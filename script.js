@@ -490,7 +490,8 @@ function generateShareText() {
         grid += left + "  " + right + "\n";
     }
 
-    return `${header}${grid}\n#メギド72 #メギドWordle`;
+    const url = "https://megidowordle.vercel.app/";
+    return `${header}${grid}\n#メギド72 #メギドWordle\n${url}`;
 }
 
 shareBtn.addEventListener("click", () => {
