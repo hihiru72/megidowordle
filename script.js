@@ -43,21 +43,29 @@ function mulberry32(a) {
     }
 }
 
-// Get today's seeded target
+// Get today's seeded target（14日ブロックシャッフル方式）
+// ・同じ14日間のブロック内では同一メギドは絶対に出ない
+// ・ブロックをまたぐ偶然の被りは約14/全メギド数（約7%）とごく低い
 function getDailyTarget() {
+    // 基準日（この方式の運用開始日）
+    const baseDate = new Date("2026-04-24");
+    baseDate.setHours(0, 0, 0, 0);
     const today = new Date();
-    // Use Year, Month, Day as seed
-    const seedText = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-    // Simple hash for string to seed
-    let hash = 0;
-    for (let i = 0; i < seedText.length; i++) {
-        const char = seedText.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
+    today.setHours(0, 0, 0, 0);
+
+    const daysDiff = Math.floor((today - baseDate) / 86400000);
+    const blockNum = Math.floor(daysDiff / 14); // 何番目の14日ブロックか
+    const dayInBlock = ((daysDiff % 14) + 14) % 14; // ブロック内の何日目か（0〜13）
+
+    // ブロック番号をシードにFisher-Yatesシャッフル
+    const rand = mulberry32(blockNum * 2654435761 + 1013904223);
+    const arr = [...MEGIDO_CHARACTERS];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-    const rand = mulberry32(hash);
-    const index = Math.floor(rand() * MEGIDO_CHARACTERS.length);
-    return MEGIDO_CHARACTERS[index];
+
+    return arr[dayInBlock];
 }
 
 function getRandomTarget() {
@@ -380,7 +388,7 @@ function showResult() {
     inputContainer.classList.add("d-none");
     playAgainContainer.classList.remove("d-none");
     resultModal.classList.remove("hidden");
-    resultTitle.textContent = gameStatus === "WIN" ? "ゲームクリア！" : "残念...";
+    resultTitle.textContent = gameStatus === "WIN" ? "勝算がある！" : "残念...";
     resultTargetWord.textContent = targetWord;
     
     // コピペ用のテキストエリアに結果を設定
@@ -460,6 +468,16 @@ showListBtn.addEventListener("click", () => {
 
 closeListBtn.addEventListener("click", () => {
     listModal.classList.add("hidden");
+});
+
+// モーダル外（背景）をタップ・クリックしたら閉じる（メギド72のUI仕様に準拠）
+[helpModal, listModal, resultModal].forEach(modal => {
+    modal.addEventListener("click", (e) => {
+        // クリックした要素がモーダル自身（背景）の場合のみ閉じる
+        if (e.target === modal) {
+            modal.classList.add("hidden");
+        }
+    });
 });
 
 closeModalBtn.addEventListener("click", () => {
