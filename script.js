@@ -501,11 +501,9 @@ function generateShareText() {
     });
 
     let grid = "";
-    const HALF = Math.ceil(GAME_MAX_GUESSES / 2);
-    for (let i = 0; i < HALF; i++) {
-        let left = lines[i] ? lines[i] : "⬛⬛⬛⬛⬛⬛⬛⬛";
-        let right = lines[i + HALF] ? lines[i + HALF] : "⬛⬛⬛⬛⬛⬛⬛⬛";
-        grid += left + "  " + right + "\n";
+    // 推測した回数分だけ、縦に1行ずつ出力する（2列表示をやめる）
+    for (let i = 0; i < guesses.length; i++) {
+        grid += lines[i] + "\n";
     }
 
     const url = "https://megidowordle.vercel.app/";
