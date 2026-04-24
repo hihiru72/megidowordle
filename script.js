@@ -252,6 +252,13 @@ function colorGuessRow(rowIdx, guessWord, target) {
 async function handleSubmit() {
     if (gameStatus !== "IN_PROGRESS") return;
     
+    // 送信前にひらがな→カタカナへ強制正規化（IME変換途中でも対応）
+    currentGuess = currentGuess.replace(/[\u3041-\u3096]/g, function(match) {
+        return String.fromCharCode(match.charCodeAt(0) + 0x60);
+    });
+    guessInput.value = currentGuess;
+    updateCurrentRowUI();
+
     if (currentGuess.length === 0) {
         shakeCurrentRow();
         return;
@@ -402,7 +409,7 @@ modeBtn.addEventListener("click", () => {
 
 giveupBtn.addEventListener("click", () => {
     if (gameStatus !== "IN_PROGRESS") return;
-    if (confirm("本当にあきらめて答えを見ますか？")) {
+    if (confirm("降参してよいですか？\n勝算がない？")) {
         gameStatus = "FAIL";
         if (gameMode === "daily") {
             saveDailyState();
