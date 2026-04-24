@@ -10,6 +10,7 @@ let resultTimer = null;
 let freeStreak = 0;
 let freeMaxStreak = 0;
 let freeLastStreak = 0; // 失敗直前のストリークを保存する用
+let solvedMegidos = new Set(); // 正解済みのメギドID（または名前）を保持
 
 // DOM Elements
 const board = document.getElementById("board");
@@ -89,12 +90,17 @@ function loadFreeStreak() {
     }
 }
 
-// フリーモードストリークの保存
-function saveFreeStreak() {
-    localStorage.setItem("megido-wordle-streak", JSON.stringify({
-        streak: freeStreak,
-        maxStreak: freeMaxStreak
-    }));
+// 正解済みメギドの保存
+function saveSolvedMegidos() {
+    localStorage.setItem("megido-wordle-solved", JSON.stringify([...solvedMegidos]));
+}
+
+// 正解済みメギドの読み込み
+function loadSolvedMegidos() {
+    const saved = localStorage.getItem("megido-wordle-solved");
+    if (saved) {
+        solvedMegidos = new Set(JSON.parse(saved));
+    }
 }
 
 function initGame() {
@@ -342,6 +348,14 @@ async function handleSubmit() {
             if (freeStreak > freeMaxStreak) freeMaxStreak = freeStreak;
             saveFreeStreak();
         }
+        
+        // 正解済みリストに追加
+        const megidoInfo = MEGIDO_LIST.find(m => m.name.replace(/[RBC]$/, "") === targetWord);
+        if (megidoInfo) {
+            solvedMegidos.add(megidoInfo.id);
+            saveSolvedMegidos();
+        }
+
         bounceCurrentRow(rowIdx);
         resultTimer = setTimeout(showResult, 1150);
     } else if (guesses.length >= GAME_MAX_GUESSES) {
@@ -547,11 +561,17 @@ function openListModal() {
             currentCategory = cat;
             html += `<h3 style="margin-top: 15px; border-bottom: 1px solid var(--primary-color); color: var(--primary-color); padding-bottom: 5px;">【${cat}】</h3>`;
         }
+        
+        // 正解済みメギドは星アイコンを表示
+        const isSolved = solvedMegidos.has(m.id);
+        const solvedMark = isSolved ? '<span style="color: #fcd34d; margin-right: 4px;">⭐</span>' : "";
+
         // 既に入力したメギドは太字の紫で表示
         const baseName = m.name.replace(/[RBC]$/, "");
         const isGuessed = guesses.includes(baseName);
         const nameStyle = isGuessed ? "font-weight: bold; color: #a855f7;" : "";
         html += `<div class="megido-list-item">
+                    ${solvedMark}
                     <span class="megido-id">${m.id}</span> 
                     <span class="megido-name" style="${nameStyle}">${m.name}</span>
                  </div>`;
@@ -680,4 +700,5 @@ if (copyTextBtn) {
 
 // Initialize
 loadFreeStreak(); // ストリークをlocalStorageから復元
+loadSolvedMegidos(); // 正解済みメギドを復元
 initGame();
