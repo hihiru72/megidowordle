@@ -73,10 +73,13 @@ button {
 #mode-btn {
     background-color: var(--primary-color);
     color: #000;
-    padding: 6px 12px;
-    border-radius: 16px;
+    padding: 4px 10px;
+    border-radius: 12px;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 12px;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
     transition: background-color 0.2s;
 }
 
@@ -90,6 +93,7 @@ main {
     flex-direction: column;
     align-items: center;
     padding: 20px 10px;
+    padding-bottom: 80px; /* 入力欄下にスライド用の余白を確保 */
     overflow-y: auto;
 }
 
@@ -445,4 +449,24 @@ main {
     border-color: #2a2a2c;
     color: #4a4a4c;
     opacity: 0.5;
+}
+
+/* スマホ向けのレスポンシブ調整 */
+@media (max-width: 500px) {
+    .tile {
+        font-size: 1.3rem; /* 画面が狭い時はフォントを小さくして枠に収める */
+    }
+}
+
+@media (max-width: 380px) {
+    .tile {
+        font-size: 1.1rem; /* さらに狭い時 */
+    }
+    header h1 {
+        font-size: 18px; /* ヘッダータイトルを縮小してボタンとの衝突を回避 */
+    }
+    #mode-btn {
+        font-size: 10px;
+        padding: 3px 6px;
+    }
 }

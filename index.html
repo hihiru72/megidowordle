@@ -16,7 +16,7 @@
             </div>
             <h1>メギドWordle</h1>
             <div class="menu-right">
-                <button id="mode-btn">モード: デイリー 🔄</button>
+                <button id="mode-btn">モード切替<br>(現在デイリー)</button>
             </div>
         </header>
 
@@ -45,7 +45,15 @@
             <h2 id="result-title">ゲームクリア！</h2>
             <p id="result-target-word"></p>
             <div id="result-stats"></div>
-            <button id="share-btn">結果をシェア 🐦</button>
+            
+            <!-- 手動コピー用エリア -->
+            <div id="result-copy-container" style="margin-top: 10px; margin-bottom: 15px; text-align: left;">
+                <p style="font-size: 12px; margin-bottom: 5px; color: #a1a1aa;">SNSなどへの貼り付け用</p>
+                <textarea id="result-textarea" readonly style="width: 100%; height: 90px; padding: 10px; background: #272729; color: white; border: 1px solid var(--border-color); border-radius: 5px; resize: none; font-size: 11px; font-family: monospace;"></textarea>
+                <button id="copy-text-btn" style="width: 100%; padding: 8px; margin-top: 5px; background: var(--correct-color); color: white; font-weight: bold; border-radius: 5px; border: none; cursor: pointer;">結果をコピーする</button>
+            </div>
+
+            <button id="share-btn">Twitterでシェア 🐦</button>
             <button id="next-btn" class="d-none">もう一度遊ぶ</button>
             <button id="close-modal-btn">閉じる</button>
         </div>
@@ -84,14 +92,14 @@
                     <p><strong>ブ</strong> は名前に含まれていません。</p>
                 </div>
             </div>
-            <button id="show-list-btn" style="margin-top: 15px; width: 100%; padding: 10px; background-color: var(--primary-color); color: #000; font-weight: bold; border-radius: 5px;">メギド名簿を確認する</button>
+            <button id="show-list-btn" style="margin-top: 15px; width: 100%; padding: 10px; background-color: var(--primary-color); color: #000; font-weight: bold; border-radius: 5px;">メギドの一覧を確認する</button>
             <button id="close-help-btn" style="margin-top: 10px;">閉じる</button>
         </div>
     </div>
 
     <div id="list-modal" class="modal hidden">
         <div class="modal-content" style="max-height: 85vh; overflow-y: auto;">
-            <h2>メギド名簿</h2>
+            <h2>メギド一覧</h2>
             <p style="font-size: 14px; margin-bottom: 10px;">ゲーム内では、末尾の「R」「B」「C」等のリジェネレイト表記を省いた名前のみを使用します。</p>
             <div id="megido-list-container"></div>
             <button id="close-list-btn" style="margin-top: 20px;">閉じる</button>

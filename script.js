@@ -358,11 +358,11 @@ function updateUI() {
     }
     
     if (gameMode === "daily") {
-        modeBtn.textContent = "モード: デイリー 🔄";
+        modeBtn.innerHTML = "モード切替<br>(現在デイリー)";
         nextBtn.textContent = "フリーモードで遊ぶ";
         nextBtn.classList.remove("d-none");
     } else {
-        modeBtn.textContent = "モード: フリー 🔄";
+        modeBtn.innerHTML = "モード切替<br>(現在フリー)";
         nextBtn.textContent = "もう一度遊ぶ";
         nextBtn.classList.remove("d-none");
     }
@@ -374,6 +374,13 @@ function showResult() {
     resultModal.classList.remove("hidden");
     resultTitle.textContent = gameStatus === "WIN" ? "ゲームクリア！" : "残念...";
     resultTargetWord.textContent = targetWord;
+    
+    // コピペ用のテキストエリアに結果を設定
+    const shareText = generateShareText();
+    const textarea = document.getElementById("result-textarea");
+    if (textarea) {
+        textarea.value = shareText;
+    }
 }
 
 // UI Event Listeners
@@ -507,6 +514,20 @@ shareBtn.addEventListener("click", () => {
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, "_blank");
     });
 });
+
+const copyTextBtn = document.getElementById("copy-text-btn");
+if (copyTextBtn) {
+    copyTextBtn.addEventListener("click", () => {
+        const textarea = document.getElementById("result-textarea");
+        navigator.clipboard.writeText(textarea.value).then(() => {
+            const originalText = copyTextBtn.textContent;
+            copyTextBtn.textContent = "コピーしました！";
+            setTimeout(() => {
+                copyTextBtn.textContent = originalText;
+            }, 2000);
+        });
+    });
+}
 
 // Initialize
 initGame();
