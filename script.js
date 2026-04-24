@@ -306,11 +306,12 @@ async function handleSubmit() {
         saveDailyState();
     }
 
-    // ゲーム継続時は入力欄を即座にクリアして次の入力を受け付ける
+    // ゲーム継続時は入力欄を即座にクリアする
     if (gameStatus === "IN_PROGRESS") {
         currentGuess = "";
         guessInput.value = "";
-        guessInput.focus();
+        // スマホでキーボードを閉じてアニメーションを見せるため、フォーカスを外す
+        guessInput.blur();
     } else {
         // ゲーム終了時は入力不可にする
         guessInput.disabled = true;
