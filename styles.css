@@ -458,10 +458,45 @@ main {
     box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     transform: translateY(0);
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    padding-bottom: 60px;
 }
 
 .modal.hidden .modal-content {
     transform: translateY(20px);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 24px;
+    flex-grow: 1;
+    text-align: center;
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    color: #a1a1aa;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+    flex-shrink: 0;
+}
+
+.modal-close-btn:hover {
+    color: var(--text-color);
 }
 
 .modal h2 {
@@ -477,7 +512,7 @@ main {
     letter-spacing: 2px;
 }
 
-#share-btn, #next-btn, #close-modal-btn, #close-help-btn {
+#share-btn, #next-btn, #close-modal-btn, #close-help-btn, .modal-close-bottom-btn {
     display: block;
     width: 100%;
     padding: 14px;
@@ -501,10 +536,11 @@ main {
     color: black;
 }
 
-#close-modal-btn, #close-help-btn {
+#close-modal-btn, #close-help-btn, .modal-close-bottom-btn {
     background-color: transparent;
     border: 1px solid var(--border-color);
     margin-top: 20px;
+    color: var(--text-color);
 }
 
 .help-examples {
