@@ -635,16 +635,20 @@ function generateShareText() {
     // フリーモードの場合は「正解：名前　(チェイン)」行を追加
     let extraLine = "";
     if (gameMode === "free") {
-        let chainText;
+        let chainText = "";
         if (gameStatus === "WIN" && freeStreak >= 2) {
-            chainText = `${freeStreak - 1}チェイン！（最大${freeMaxStreak}チェイン）`;
+            // ②最大チェイン削除、③正しいチェイン数（2連正解=1チェイン）
+            chainText = `${freeStreak - 1}チェイン！`;
         } else if (gameStatus === "WIN") {
-            chainText = "チェインスタート！";
+            // ① 1回目クリア時はチェイン表記なし
+            chainText = "";
         } else {
-            // 失敗時：保存した今回のチェイン数と最大を表示
-            chainText = `チェイン終了（チェイン数：${freeLastStreak}　最大チェイン：${freeMaxStreak}）`;
+            // ④ 失敗/降参時：「チェイン終了」削除、チェインがあった場合のみ表示
+            chainText = freeLastStreak > 0 ? `${freeLastStreak}チェイン` : "";
         }
-        extraLine = `正解：${targetWord}　${chainText}\n`;
+        extraLine = chainText
+            ? `正解：${targetWord}　${chainText}\n`
+            : `正解：${targetWord}\n`;
     }
     
     let lines = new Array(GAME_MAX_GUESSES).fill("");
@@ -674,15 +678,14 @@ function generateShareText() {
         lines[index] = rowStatuses.join("");
     });
 
-    let grid = "";
-    // 推測した回数分だけ、縦に1行ずつ出力する（2列表示をやめる）
-    for (let i = 0; i < guesses.length; i++) {
-        grid += lines[i] + "\n";
+    // WIN時は正解行（最後の行）を8文字固定の🟩で上書き（文字数推測を防ぐ）
+    if (gameStatus === "WIN" && guesses.length > 0) {
+        lines[guesses.length - 1] = "🟩🟩🟩🟩🟩🟩🟩🟩";
     }
 
-    // WIN時は8つ全部🟩を追加
-    if (gameStatus === "WIN") {
-        grid += "🟩🟩🟩🟩🟩🟩🟩🟩\n";
+    let grid = "";
+    for (let i = 0; i < guesses.length; i++) {
+        grid += lines[i] + "\n";
     }
 
     const url = "https://megidowordle.vercel.app/";
@@ -692,14 +695,16 @@ function generateShareText() {
 shareBtn.addEventListener("click", () => {
     const shareText = generateShareText();
     
+    // ユーザー操作に同期して即時呼び出す（ポップアップブロック・スマホアプリ未起動対策）
+    // x.comはスマホでXアプリへの遷移が促される
+    const tweetUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+    window.open(tweetUrl, "_blank");
+    
+    // クリップボードへのコピーは非同期で行う（失敗しても投稿には影響しない）
     navigator.clipboard.writeText(shareText).then(() => {
-        showMessage("結果をクリップボードにコピーしました！Twitterを開きます。");
-        setTimeout(() => {
-            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, "_blank");
-        }, 800);
+        showMessage("Xを開きました！クリップボードにもコピー済みです");
     }).catch(() => {
-        showMessage("コピーに失敗しました。手動でシェアしてください。");
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, "_blank");
+        showMessage("Xを開きました！");
     });
 });
 
