@@ -90,6 +90,14 @@ function loadFreeStreak() {
     }
 }
 
+// フリーモードストリークの保存
+function saveFreeStreak() {
+    localStorage.setItem("megido-wordle-streak", JSON.stringify({
+        streak: freeStreak,
+        maxStreak: freeMaxStreak
+    }));
+}
+
 // 正解済みメギドの保存
 function saveSolvedMegidos() {
     localStorage.setItem("megido-wordle-solved", JSON.stringify([...solvedMegidos]));
@@ -462,17 +470,22 @@ function showResult() {
         textarea.value = shareText;
     }
 
-    // デイリーモードのみシェア・コピー機能を表示する
-    const copyContainer = document.getElementById("result-copy-container");
+    // 結果情報の要素を取得
     const streakInfo = document.getElementById("streak-info");
+    
+    // デイリーモード
     if (gameMode === "daily") {
         shareBtn.classList.remove("d-none");
+        const copyContainer = document.getElementById("result-copy-container");
         if (copyContainer) copyContainer.classList.remove("d-none");
         if (streakInfo) streakInfo.classList.add("d-none");
     } else {
-        // フリーモード：Twitterシェアとコピー機能は両方表示、ストリークも表示
+        // フリーモード：シェアボタンとコピー機能を表示
         shareBtn.classList.remove("d-none");
+        const copyContainer = document.getElementById("result-copy-container");
         if (copyContainer) copyContainer.classList.remove("d-none");
+        
+        // ストリーク情報を設定して表示
         if (streakInfo) {
             if (gameStatus === "WIN" && freeStreak >= 2) {
                 // 2回以上連続正解：チェイン表示
@@ -512,6 +525,7 @@ function showResult() {
             }
             streakInfo.classList.remove("d-none");
         }
+        
         // フリーモードのサブタイトルを更新
         document.getElementById("mode-subtitle").textContent = `🎮 フリーモード｜チェイン ${freeStreak} ♪最大 ${freeMaxStreak}`;
     }
