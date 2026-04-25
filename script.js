@@ -680,8 +680,13 @@ function generateShareText() {
         grid += lines[i] + "\n";
     }
 
+    // WIN時は8つ全部🟩を追加
+    if (gameStatus === "WIN") {
+        grid += "🟩🟩🟩🟩🟩🟩🟩🟩\n";
+    }
+
     const url = "https://megidowordle.vercel.app/";
-    return `${header}${extraLine}\n${grid}\n#メギド72 #メギドWordle\n${url}`;
+    return `${header}${extraLine}\n${grid}\n#メギドWordle\n${url}`;
 }
 
 shareBtn.addEventListener("click", () => {
