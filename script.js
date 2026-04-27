@@ -33,8 +33,8 @@ const inputContainer = document.getElementById("input-container");
 const playAgainContainer = document.getElementById("play-again-container");
 const playAgainBtn = document.getElementById("play-again-btn");
 const listModal = document.getElementById("list-modal");
-const listBtn = document.getElementById("list-btn");
-const resultListBtn = document.getElementById("result-list-btn");
+const showListBtn = document.getElementById("show-list-btn"); // 遠び方モーダル内のボタン（残存局止変数）
+const listBtn = document.getElementById("list-btn"); // 入力欄横のボタン
 const closeListBtn = document.getElementById("close-list-btn");
 const megidoListContainer = document.getElementById("megido-list-container");
 
@@ -374,6 +374,7 @@ async function handleSubmit() {
             freeStreak = 0;
             saveFreeStreak();
         }
+        updateUI(); // 正解表示をボード下にセット
         resultTimer = setTimeout(showResult, 1150);
     }
 
@@ -418,6 +419,7 @@ function bounceCurrentRow(rowIdx) {
 }
 
 function updateUI() {
+    const answerDisplay = document.getElementById("answer-display");
     if (gameStatus !== "IN_PROGRESS") {
         inputContainer.classList.add("d-none");
         playAgainContainer.classList.remove("d-none");
@@ -425,9 +427,22 @@ function updateUI() {
         if (guesses.length > 0 && resultModal.classList.contains("hidden")) {
             resultTimer = setTimeout(showResult, 500);
         }
+        // 失敗・降参時はbottom-controls内に正解を表示
+        if (gameStatus === "FAIL") {
+            const megidoInfo = MEGIDO_LIST.find(m => m.name.replace(/[RBC]$/, "") === targetWord);
+            const idText = megidoInfo ? megidoInfo.id : "";
+            answerDisplay.innerHTML = `正解：<span style="font-size:13px; color:#a1a1aa;">${idText}</span>　${targetWord}`;
+            answerDisplay.style.display = "block";
+            document.getElementById("bottom-controls").style.flexDirection = "column";
+            document.getElementById("bottom-controls").style.alignItems = "center";
+        } else {
+            answerDisplay.style.display = "none";
+            document.getElementById("bottom-controls").style.flexDirection = "";
+        }
     } else {
         inputContainer.classList.remove("d-none");
         playAgainContainer.classList.add("d-none");
+        answerDisplay.style.display = "none";
         guessInput.disabled = false;
         submitBtn.disabled = false;
         guessInput.value = "";
@@ -541,6 +556,11 @@ giveupBtn.addEventListener("click", () => {
     if (gameStatus !== "IN_PROGRESS") return;
     if (confirm("降参してよいですか？\n勝算がない？")) {
         gameStatus = "FAIL";
+        if (gameMode === "free") {
+            freeLastStreak = freeStreak; // リセット前に保存
+            freeStreak = 0;
+            saveFreeStreak();
+        }
         if (gameMode === "daily") {
             saveDailyState();
         }
@@ -564,19 +584,6 @@ closeHelpBtn.addEventListener("click", () => {
     helpModal.classList.add("hidden");
 });
 
-// モーダル左上×ボタンのイベント
-document.getElementById("help-close-x").addEventListener("click", () => {
-    helpModal.classList.add("hidden");
-});
-
-document.getElementById("result-close-x").addEventListener("click", () => {
-    resultModal.classList.add("hidden");
-});
-
-document.getElementById("list-close-x").addEventListener("click", () => {
-    listModal.classList.add("hidden");
-});
-
 // 入力欄横の一覧ボタンのイベントリスナー
 function openListModal() {
     // リストを常に再生成して既入力名を色付ける
@@ -589,9 +596,9 @@ function openListModal() {
             html += `<h3 style="margin-top: 15px; border-bottom: 1px solid var(--primary-color); color: var(--primary-color); padding-bottom: 5px;">【${cat}】</h3>`;
         }
         
-        // 正解済みメギドは星アイコンを表示
+        // 正解済みメギドは星アイコンを表示（常に同幅の列を確保してずれを防ぐ）
         const isSolved = solvedMegidos.has(m.id);
-        const solvedMark = isSolved ? '<span style="color: #fcd34d; margin-right: 4px;">⭐</span>' : "";
+        const solvedMark = `<span style="width: 20px; display: inline-block; text-align: center; color: #fcd34d; flex-shrink: 0;">${isSolved ? "⭐" : ""}</span>`;
 
         // 既に入力したメギドは太字の紫で表示
         const baseName = m.name.replace(/[RBC]$/, "");
@@ -609,12 +616,6 @@ function openListModal() {
 
 if (listBtn) {
     listBtn.addEventListener("click", () => {
-        openListModal();
-    });
-}
-
-if (resultListBtn) {
-    resultListBtn.addEventListener("click", () => {
         openListModal();
     });
 }
@@ -654,16 +655,20 @@ function generateShareText() {
     // フリーモードの場合は「正解：名前　(チェイン)」行を追加
     let extraLine = "";
     if (gameMode === "free") {
-        let chainText;
+        let chainText = "";
         if (gameStatus === "WIN" && freeStreak >= 2) {
-            chainText = `${freeStreak - 1}チェイン！（最大${freeMaxStreak}チェイン）`;
+            // ②最大チェイン削除、③正しいチェイン数（2連正解=1チェイン）
+            chainText = `${freeStreak - 1}チェイン！`;
         } else if (gameStatus === "WIN") {
-            chainText = "チェインスタート！";
+            // ① 1回目クリア時はチェイン表記なし
+            chainText = "";
         } else {
-            // 失敗時：保存した今回のチェイン数と最大を表示
-            chainText = `チェイン終了（チェイン数：${freeLastStreak}　最大チェイン：${freeMaxStreak}）`;
+            // ④ 失敗/降参時：「チェイン終了」削除、チェインがあった場合のみ表示
+            chainText = freeLastStreak > 0 ? `${freeLastStreak}チェイン` : "";
         }
-        extraLine = `正解：${targetWord}　${chainText}\n`;
+        extraLine = chainText
+            ? `正解：${targetWord}　${chainText}\n`
+            : `正解：${targetWord}\n`;
     }
     
     let lines = new Array(GAME_MAX_GUESSES).fill("");
@@ -693,15 +698,14 @@ function generateShareText() {
         lines[index] = rowStatuses.join("");
     });
 
-    let grid = "";
-    // 推測した回数分だけ、縦に1行ずつ出力する（2列表示をやめる）
-    for (let i = 0; i < guesses.length; i++) {
-        grid += lines[i] + "\n";
+    // WIN時は正解行（最後の行）を8文字固定の🟩で上書き（文字数推測を防ぐ）
+    if (gameStatus === "WIN" && guesses.length > 0) {
+        lines[guesses.length - 1] = "🟩🟩🟩🟩🟩🟩🟩🟩";
     }
 
-    // WIN時は8つ全部🟩を追加
-    if (gameStatus === "WIN") {
-        grid += "🟩🟩🟩🟩🟩🟩🟩🟩\n";
+    let grid = "";
+    for (let i = 0; i < guesses.length; i++) {
+        grid += lines[i] + "\n";
     }
 
     const url = "https://megidowordle.vercel.app/";
@@ -711,14 +715,16 @@ function generateShareText() {
 shareBtn.addEventListener("click", () => {
     const shareText = generateShareText();
     
+    // ユーザー操作に同期して即時呼び出す（ポップアップブロック・スマホアプリ未起動対策）
+    // x.comはスマホでXアプリへの遷移が促される
+    const tweetUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+    window.open(tweetUrl, "_blank");
+    
+    // クリップボードへのコピーは非同期で行う（失敗しても投稿には影響しない）
     navigator.clipboard.writeText(shareText).then(() => {
-        showMessage("結果をクリップボードにコピーしました！Twitterを開きます。");
-        setTimeout(() => {
-            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, "_blank");
-        }, 800);
+        showMessage("Xを開きました！クリップボードにもコピー済みです");
     }).catch(() => {
-        showMessage("コピーに失敗しました。手動でシェアしてください。");
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, "_blank");
+        showMessage("Xを開きました！");
     });
 });
 

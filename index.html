@@ -42,17 +42,13 @@
             <!-- 失敗・降参時の正解表示（fixed領域内なので常に見える） -->
             <div id="answer-display" style="display:none; width:100%; max-width:400px; text-align:center; font-size:16px; color:var(--primary-color); font-weight:bold; padding:6px 0 2px; letter-spacing:1px;"></div>
             <div id="play-again-container" class="d-none">
-                <div id="play-again-wrapper">
-                    <button id="play-again-btn">もう一回あそぶ（フリーモード）</button>
-                    <button id="result-list-btn" title="メギド一覧">📋</button>
-                </div>
+                <button id="play-again-btn">もう一回あそぶ（フリーモード）</button>
             </div>
         </div>
     </div>
 
     <div id="result-modal" class="modal hidden">
         <div class="modal-content">
-            <button class="modal-close-x" onclick="document.getElementById('result-modal').classList.add('hidden')">✕</button>
             <h2 id="result-title">ゲームクリア！</h2>
             <p id="result-target-word"></p>
             <div id="result-stats"></div>
@@ -76,7 +72,6 @@
 
     <div id="help-modal" class="modal hidden">
         <div class="modal-content">
-            <button class="modal-close-x" onclick="document.getElementById('help-modal').classList.add('hidden')">✕</button>
             <h2>遊び方</h2>
             <p>メギド72のキャラクターの名前を当てよう！</p>
             <p>推測できる回数は<strong>10回</strong>です。</p>
@@ -114,7 +109,6 @@
 
     <div id="list-modal" class="modal hidden">
         <div class="modal-content" style="max-height: 85vh; overflow-y: auto;">
-            <button class="modal-close-x" onclick="document.getElementById('list-modal').classList.add('hidden')">✕</button>
             <h2>メギド一覧</h2>
             <p style="font-size: 14px; margin-bottom: 10px;">ゲーム内では、末尾の「R」「B」「C」等のリジェネレイト表記を省いた名前のみを使用します。</p>
             <div id="megido-list-container"></div>

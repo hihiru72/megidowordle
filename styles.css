@@ -285,9 +285,6 @@ main {
     width: 100%;
     max-width: 500px;
     z-index: 10;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
 }
 
 #input-container {
@@ -357,17 +354,10 @@ main {
     margin-bottom: 0;
 }
 
-#play-again-wrapper {
-    display: flex;
-    width: 100%;
-    gap: 6px;
-    align-items: stretch;
-}
-
 #play-again-btn {
     background-color: var(--primary-color);
     color: #000;
-    flex-grow: 1;
+    width: 100%;
     padding: 15px;
     font-size: 18px;
     font-weight: bold;
@@ -377,23 +367,6 @@ main {
 
 #play-again-btn:active {
     transform: scale(0.95);
-}
-
-/* クリア後のメギド一覧ボタン */
-#result-list-btn {
-    background-color: #272729;
-    color: var(--primary-color);
-    border: 1px solid var(--border-color);
-    padding: 0 12px;
-    font-size: 18px;
-    border-radius: 8px;
-    transition: background-color 0.2s;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-#result-list-btn:hover {
-    background-color: #3a3a3c;
 }
 
 #megido-list-container {
@@ -473,7 +446,6 @@ main {
 }
 
 .modal-content {
-    position: relative;
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
     border-radius: 12px;
@@ -666,29 +638,4 @@ main {
         font-size: 10px;
         padding: 3px 6px;
     }
-}
-
-/* モーダル左上の×閉じるボタン */
-.modal-close-x {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    background: none;
-    border: none;
-    color: #a1a1aa;
-    font-size: 20px;
-    cursor: pointer;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: background-color 0.2s, color 0.2s;
-    z-index: 10;
-}
-
-.modal-close-x:hover {
-    background-color: #3a3a3c;
-    color: var(--text-color);
 }
