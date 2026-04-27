@@ -374,6 +374,7 @@ async function handleSubmit() {
             freeStreak = 0;
             saveFreeStreak();
         }
+        updateUI(); // 正解表示をボード下にセット
         resultTimer = setTimeout(showResult, 1150);
     }
 
@@ -418,6 +419,7 @@ function bounceCurrentRow(rowIdx) {
 }
 
 function updateUI() {
+    const answerDisplay = document.getElementById("answer-display");
     if (gameStatus !== "IN_PROGRESS") {
         inputContainer.classList.add("d-none");
         playAgainContainer.classList.remove("d-none");
@@ -425,9 +427,22 @@ function updateUI() {
         if (guesses.length > 0 && resultModal.classList.contains("hidden")) {
             resultTimer = setTimeout(showResult, 500);
         }
+        // 失敗・降参時はbottom-controls内に正解を表示
+        if (gameStatus === "FAIL") {
+            const megidoInfo = MEGIDO_LIST.find(m => m.name.replace(/[RBC]$/, "") === targetWord);
+            const idText = megidoInfo ? megidoInfo.id : "";
+            answerDisplay.innerHTML = `正解：<span style="font-size:13px; color:#a1a1aa;">${idText}</span>　${targetWord}`;
+            answerDisplay.style.display = "block";
+            document.getElementById("bottom-controls").style.flexDirection = "column";
+            document.getElementById("bottom-controls").style.alignItems = "center";
+        } else {
+            answerDisplay.style.display = "none";
+            document.getElementById("bottom-controls").style.flexDirection = "";
+        }
     } else {
         inputContainer.classList.remove("d-none");
         playAgainContainer.classList.add("d-none");
+        answerDisplay.style.display = "none";
         guessInput.disabled = false;
         submitBtn.disabled = false;
         guessInput.value = "";
@@ -541,6 +556,11 @@ giveupBtn.addEventListener("click", () => {
     if (gameStatus !== "IN_PROGRESS") return;
     if (confirm("降参してよいですか？\n勝算がない？")) {
         gameStatus = "FAIL";
+        if (gameMode === "free") {
+            freeLastStreak = freeStreak; // リセット前に保存
+            freeStreak = 0;
+            saveFreeStreak();
+        }
         if (gameMode === "daily") {
             saveDailyState();
         }
@@ -576,9 +596,9 @@ function openListModal() {
             html += `<h3 style="margin-top: 15px; border-bottom: 1px solid var(--primary-color); color: var(--primary-color); padding-bottom: 5px;">【${cat}】</h3>`;
         }
         
-        // 正解済みメギドは星アイコンを表示
+        // 正解済みメギドは星アイコンを表示（常に同幅の列を確保してずれを防ぐ）
         const isSolved = solvedMegidos.has(m.id);
-        const solvedMark = isSolved ? '<span style="color: #fcd34d; margin-right: 4px;">⭐</span>' : "";
+        const solvedMark = `<span style="width: 20px; display: inline-block; text-align: center; color: #fcd34d; flex-shrink: 0;">${isSolved ? "⭐" : ""}</span>`;
 
         // 既に入力したメギドは太字の紫で表示
         const baseName = m.name.replace(/[RBC]$/, "");
