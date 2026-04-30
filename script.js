@@ -123,6 +123,9 @@ function initGame() {
     if (gameMode === "daily") {
         targetWord = getDailyTarget();
         loadDailyState();
+        if (gameStatus !== "IN_PROGRESS") {
+            resultTimer = setTimeout(showResult, 500);
+        }
     } else {
         targetWord = getRandomTarget();
         guesses = [];
@@ -365,6 +368,7 @@ async function handleSubmit() {
         }
 
         bounceCurrentRow(rowIdx);
+        if (resultTimer) clearTimeout(resultTimer);
         resultTimer = setTimeout(showResult, 1150);
     } else if (guesses.length >= GAME_MAX_GUESSES) {
         gameStatus = "FAIL";
@@ -375,6 +379,7 @@ async function handleSubmit() {
             saveFreeStreak();
         }
         updateUI(); // 正解表示をボード下にセット
+        if (resultTimer) clearTimeout(resultTimer);
         resultTimer = setTimeout(showResult, 1150);
     }
 
@@ -423,10 +428,6 @@ function updateUI() {
     if (gameStatus !== "IN_PROGRESS") {
         inputContainer.classList.add("d-none");
         playAgainContainer.classList.remove("d-none");
-        // If already finished when page loads
-        if (guesses.length > 0 && resultModal.classList.contains("hidden")) {
-            resultTimer = setTimeout(showResult, 500);
-        }
         // 失敗・降参時はbottom-controls内に正解を表示
         if (gameStatus === "FAIL") {
             const megidoInfo = MEGIDO_LIST.find(m => m.name.replace(/[RBC]$/, "") === targetWord);
@@ -455,16 +456,23 @@ function updateUI() {
         nextBtn.classList.remove("d-none");
     } else {
         modeBtn.textContent = "モード切替";
-        document.getElementById("mode-subtitle").textContent = `🎮 フリーモード｜チェイン ${freeStreak} ♪最大 ${freeMaxStreak}`;
+        const currentDisplayStreak = (gameStatus === "FAIL") ? freeLastStreak : freeStreak;
+        document.getElementById("mode-subtitle").textContent = `🎮 フリーモード｜${currentDisplayStreak}チェイン ♪最大 ${freeMaxStreak}`;
         nextBtn.textContent = "もう一度遊ぶ";
         nextBtn.classList.remove("d-none");
     }
 }
 
 function showResult() {
+    updateUI(); // 確実にUI状態を最新にする
     inputContainer.classList.add("d-none");
     playAgainContainer.classList.remove("d-none");
-    resultModal.classList.remove("hidden");
+    
+    // アニメーションと競合しないよう、requestAnimationFrameを挟む
+    requestAnimationFrame(() => {
+        resultModal.classList.remove("hidden");
+    });
+    
     resultTitle.textContent = gameStatus === "WIN" ? "勝算がある！" : "残念...";
     
     // MEGIDO_LISTからIDを取得して番号付きで表示
@@ -502,26 +510,14 @@ function showResult() {
         
         // ストリーク情報を設定して表示
         if (streakInfo) {
-            if (gameStatus === "WIN" && freeStreak >= 2) {
-                // 2回以上連続正解：チェイン表示
+            if (gameStatus === "WIN") {
                 streakInfo.innerHTML = `
-                    <div class="chain-number">${freeStreak - 1}</div>
-                    <div class="chain-label">チェイン！</div>
+                    <div class="chain-label" style="font-size: 1.2rem; margin-bottom: 10px;">🏆 ${freeStreak >= 2 ? "チェイン継続中！" : "チェインスタート！"}</div>
                     <div class="streak-stats">
                         <div class="streak-stat-item">
                             <span class="streak-stat-value">${freeStreak}</span>
-                            <span>現在チェイン数</span>
+                            <span>チェイン数</span>
                         </div>
-                        <div class="streak-stat-item">
-                            <span class="streak-stat-value">${freeMaxStreak}</span>
-                            <span>最大チェイン</span>
-                        </div>
-                    </div>`;
-            } else if (gameStatus === "WIN") {
-                // 初勝利：チェインスタート
-                streakInfo.innerHTML = `
-                    <div class="chain-label">🏆 チェインスタート！</div>
-                    <div class="streak-stats">
                         <div class="streak-stat-item">
                             <span class="streak-stat-value">${freeMaxStreak}</span>
                             <span>最大チェイン</span>
@@ -530,8 +526,12 @@ function showResult() {
             } else {
                 // 敗北：チェイン終了
                 streakInfo.innerHTML = `
-                    <div class="chain-label">💥 チェイン終了</div>
+                    <div class="chain-label" style="font-size: 1.2rem; margin-bottom: 10px;">💥 チェイン終了</div>
                     <div class="streak-stats">
+                        <div class="streak-stat-item">
+                            <span class="streak-stat-value">${freeLastStreak}</span>
+                            <span>到達チェイン</span>
+                        </div>
                         <div class="streak-stat-item">
                             <span class="streak-stat-value">${freeMaxStreak}</span>
                             <span>最大チェイン</span>
@@ -542,7 +542,8 @@ function showResult() {
         }
         
         // フリーモードのサブタイトルを更新
-        document.getElementById("mode-subtitle").textContent = `🎮 フリーモード｜チェイン ${freeStreak} ♪最大 ${freeMaxStreak}`;
+        const currentDisplayStreak = (gameStatus === "FAIL") ? freeLastStreak : freeStreak;
+        document.getElementById("mode-subtitle").textContent = `🎮 フリーモード｜${currentDisplayStreak}チェイン ♪最大 ${freeMaxStreak}`;
     }
 }
 
@@ -656,15 +657,21 @@ function generateShareText() {
     let extraLine = "";
     if (gameMode === "free") {
         let chainText = "";
-        if (gameStatus === "WIN" && freeStreak >= 2) {
-            // ②最大チェイン削除、③正しいチェイン数（2連正解=1チェイン）
-            chainText = `${freeStreak - 1}チェイン！`;
-        } else if (gameStatus === "WIN") {
-            // ① 1回目クリア時はチェイン表記なし
-            chainText = "";
+        
+        const getChainEmoji = (chain) => {
+            const mod = chain % 100;
+            if (mod === 39) return "👍";
+            if (mod === 59) return "😭";
+            if (mod === 72) return "🎉👁\u200D🗨\uFE0F💍"; // 👁🗨は環境によってレンダリングが分かれるため \u200D を挟んだ合字を使用
+            return "";
+        };
+
+        if (gameStatus === "WIN") {
+            // WIN時：2チェイン以上なら表示（1回の正解ならシンプルに表示させない、もしくは1チェイン！とする。ここでは1以上なら表示）
+            chainText = freeStreak > 0 ? `${freeStreak}チェイン！${getChainEmoji(freeStreak)}` : "";
         } else {
-            // ④ 失敗/降参時：「チェイン終了」削除、チェインがあった場合のみ表示
-            chainText = freeLastStreak > 0 ? `${freeLastStreak}チェイン` : "";
+            // 失敗/降参時：チェインがあった場合のみシンプルに表示
+            chainText = freeLastStreak > 0 ? `${freeLastStreak}チェイン${getChainEmoji(freeLastStreak)}` : "";
         }
         extraLine = chainText
             ? `正解：${targetWord}　${chainText}\n`
