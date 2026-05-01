@@ -634,6 +634,15 @@ main {
     .tile {
         font-size: 1.3rem; /* 画面が狭い時はフォントを小さくして枠に収める */
     }
+    #bottom-controls {
+        padding: 8px 8px; /* 余白を少し詰める */
+    }
+    .action-row {
+        gap: 4px;
+    }
+    #input-container {
+        gap: 4px;
+    }
 }
 
 @media (max-width: 380px) {
@@ -646,6 +655,36 @@ main {
     #mode-btn {
         font-size: 10px;
         padding: 3px 6px;
+    }
+    
+    /* フッター要素をさらに詰める */
+    #bottom-controls {
+        padding: 8px 4px;
+    }
+    #submit-btn {
+        padding: 0 8px;
+        font-size: 13px;
+    }
+    #list-btn {
+        padding: 0 8px;
+    }
+    #giveup-btn, #impulse-btn {
+        padding: 0 4px;
+    }
+    #guess-input {
+        padding: 8px 6px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 330px) {
+    /* 非常に幅が狭い端末（iPhone SEなど）向け */
+    #submit-btn {
+        padding: 0 6px;
+        font-size: 12px;
+    }
+    #giveup-btn .btn-label, #impulse-btn .btn-label {
+        font-size: 8px;
     }
 }
 
