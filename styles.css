@@ -51,7 +51,8 @@ header h1,
 .tile,
 #hint-text,
 #word-length-hint,
-.impulse-hint-item {
+.impulse-hint-item,
+.megido-name {
     font-family: 'GenEiLateMin', serif;
 }
 
