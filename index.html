@@ -33,17 +33,19 @@
         </main>
         
         <div id="bottom-controls">
-            <div id="input-container">
-                <button id="giveup-btn"><span class="btn-icon">🏳️</span><span class="btn-label">降参</span></button>
-                <input type="text" id="guess-input" placeholder="カタカナで入力..." autocomplete="off">
-                <button id="submit-btn">あてる</button>
+            <div class="action-row">
+                <div id="input-container">
+                    <button id="giveup-btn"><span class="btn-icon">🏳️</span><span class="btn-label">降参</span></button>
+                    <input type="text" id="guess-input" placeholder="カタカナで入力..." autocomplete="off">
+                    <button id="submit-btn">あてる</button>
+                </div>
+                <div id="play-again-container" class="d-none">
+                    <button id="play-again-btn">もう一回あそぶ（フリーモード）</button>
+                </div>
                 <button id="list-btn" title="メギド一覧">📋</button>
             </div>
             <!-- 失敗・降参時の正解表示（fixed領域内なので常に見える） -->
             <div id="answer-display" style="display:none; width:100%; max-width:400px; text-align:center; font-size:16px; color:var(--primary-color); font-weight:bold; padding:6px 0 2px; letter-spacing:1px;"></div>
-            <div id="play-again-container" class="d-none">
-                <button id="play-again-btn">もう一回あそぶ（フリーモード）</button>
-            </div>
         </div>
     </div>
 

@@ -287,10 +287,17 @@ main {
     z-index: 10;
 }
 
-#input-container {
+.action-row {
     display: flex;
     width: 100%;
     max-width: 400px;
+    gap: 6px;
+    align-items: stretch;
+}
+
+#input-container {
+    display: flex;
+    flex-grow: 1;
     gap: 6px;
     margin-bottom: 0;
     flex-wrap: nowrap; /* 改行を防ぐ */
@@ -349,8 +356,7 @@ main {
 
 #play-again-container {
     display: flex;
-    width: 100%;
-    max-width: 400px;
+    flex-grow: 1;
     margin-bottom: 0;
 }
 
@@ -358,6 +364,7 @@ main {
     background-color: var(--primary-color);
     color: #000;
     width: 100%;
+    flex-grow: 1;
     padding: 15px;
     font-size: 18px;
     font-weight: bold;

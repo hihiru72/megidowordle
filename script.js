@@ -10,6 +10,13 @@ let resultTimer = null;
 let freeStreak = 0;
 let freeMaxStreak = 0;
 let freeLastStreak = 0; // 失敗直前のストリークを保存する用
+
+// デイリーモード連続正解ストリーク
+let dailyStreak = 0;
+let dailyMaxStreak = 0;
+let dailyLastStreak = 0;
+let dailyLastWinDate = "";
+
 let solvedMegidos = new Set(); // 正解済みのメギドID（または名前）を保持
 
 // DOM Elements
@@ -111,7 +118,29 @@ function loadSolvedMegidos() {
     }
 }
 
+// デイリーストリークの保存
+function saveDailyStreak() {
+    localStorage.setItem("megido-wordle-daily-streak", JSON.stringify({
+        streak: dailyStreak,
+        maxStreak: dailyMaxStreak,
+        lastWinDate: dailyLastWinDate
+    }));
+}
+
+// デイリーストリークの読み込み
+function loadDailyStreak() {
+    const saved = localStorage.getItem("megido-wordle-daily-streak");
+    if (saved) {
+        const data = JSON.parse(saved);
+        dailyStreak = data.streak || 0;
+        dailyMaxStreak = data.maxStreak || 0;
+        dailyLastWinDate = data.lastWinDate || "";
+    }
+}
+
 function initGame() {
+    loadDailyStreak(); // ここでロードして最新状態にする
+
     if (resultTimer) {
         clearTimeout(resultTimer);
         resultTimer = null;
@@ -162,9 +191,12 @@ function initGame() {
     updateUI();
 }
 
+function getDateString(date) {
+    return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+}
+
 function saveDailyState() {
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+    const dateStr = getDateString(new Date());
     const state = {
         guesses: guesses,
         gameStatus: gameStatus
@@ -173,8 +205,7 @@ function saveDailyState() {
 }
 
 function loadDailyState() {
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+    const dateStr = getDateString(new Date());
     const saved = localStorage.getItem(`megido-wordle-${dateStr}`);
     if (saved) {
         const state = JSON.parse(saved);
@@ -358,6 +389,33 @@ async function handleSubmit() {
             freeStreak++;
             if (freeStreak > freeMaxStreak) freeMaxStreak = freeStreak;
             saveFreeStreak();
+        } else if (gameMode === "daily") {
+            const todayDate = new Date();
+            todayDate.setHours(0, 0, 0, 0);
+            const todayStr = getDateString(todayDate);
+            
+            let daysDiff = -1;
+            if (dailyLastWinDate) {
+                const parts = dailyLastWinDate.split('-');
+                if (parts.length === 3) {
+                    const lastWinObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                    const diffTime = todayDate - lastWinObj;
+                    daysDiff = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                }
+            }
+            
+            if (daysDiff === 0) {
+                // 同じ日のクリア（リロード等）は増減させない
+            } else if (daysDiff >= 1 && daysDiff <= 7) {
+                // 1日〜7日の間隔ならチェイン継続
+                dailyStreak++;
+            } else {
+                // 初回プレイ、または8日以上空いた場合
+                dailyStreak = 1;
+            }
+            if (dailyStreak > dailyMaxStreak) dailyMaxStreak = dailyStreak;
+            dailyLastWinDate = todayStr;
+            saveDailyStreak();
         }
         
         // 正解済みリストに追加
@@ -372,11 +430,15 @@ async function handleSubmit() {
         resultTimer = setTimeout(showResult, 1150);
     } else if (guesses.length >= GAME_MAX_GUESSES) {
         gameStatus = "FAIL";
-        // フリーモードのストリークをリセット
+        // ストリークをリセット
         if (gameMode === "free") {
             freeLastStreak = freeStreak; // リセット前に今回のチェイン数を保存
             freeStreak = 0;
             saveFreeStreak();
+        } else if (gameMode === "daily") {
+            dailyLastStreak = dailyStreak;
+            dailyStreak = 0;
+            saveDailyStreak();
         }
         updateUI(); // 正解表示をボード下にセット
         if (resultTimer) clearTimeout(resultTimer);
@@ -451,13 +513,14 @@ function updateUI() {
     
     if (gameMode === "daily") {
         modeBtn.textContent = "モード切替";
-        document.getElementById("mode-subtitle").textContent = "📅 デイリーモード";
+        const currentDisplayStreak = (gameStatus === "FAIL") ? dailyLastStreak : dailyStreak;
+        document.getElementById("mode-subtitle").textContent = `📅 デイリーモード｜${currentDisplayStreak}チェイン`;
         nextBtn.textContent = "フリーモードで遊ぶ";
         nextBtn.classList.remove("d-none");
     } else {
         modeBtn.textContent = "モード切替";
         const currentDisplayStreak = (gameStatus === "FAIL") ? freeLastStreak : freeStreak;
-        document.getElementById("mode-subtitle").textContent = `🎮 フリーモード｜${currentDisplayStreak}チェイン ♪最大 ${freeMaxStreak}`;
+        document.getElementById("mode-subtitle").textContent = `🎮 フリーモード｜${currentDisplayStreak}チェイン（最大 ${freeMaxStreak}）`;
         nextBtn.textContent = "もう一度遊ぶ";
         nextBtn.classList.remove("d-none");
     }
@@ -496,54 +559,66 @@ function showResult() {
     // 結果情報の要素を取得
     const streakInfo = document.getElementById("streak-info");
     
-    // デイリーモード
-    if (gameMode === "daily") {
-        shareBtn.classList.remove("d-none");
-        const copyContainer = document.getElementById("result-copy-container");
-        if (copyContainer) copyContainer.classList.remove("d-none");
-        if (streakInfo) streakInfo.classList.add("d-none");
-    } else {
-        // フリーモード：シェアボタンとコピー機能を表示
-        shareBtn.classList.remove("d-none");
-        const copyContainer = document.getElementById("result-copy-container");
-        if (copyContainer) copyContainer.classList.remove("d-none");
-        
-        // ストリーク情報を設定して表示
-        if (streakInfo) {
-            if (gameStatus === "WIN") {
-                streakInfo.innerHTML = `
-                    <div class="chain-label" style="font-size: 1.2rem; margin-bottom: 10px;">🏆 ${freeStreak >= 2 ? "チェイン継続中！" : "チェインスタート！"}</div>
-                    <div class="streak-stats">
-                        <div class="streak-stat-item">
-                            <span class="streak-stat-value">${freeStreak}</span>
-                            <span>チェイン数</span>
-                        </div>
-                        <div class="streak-stat-item">
-                            <span class="streak-stat-value">${freeMaxStreak}</span>
-                            <span>最大チェイン</span>
-                        </div>
-                    </div>`;
-            } else {
-                // 敗北：チェイン終了
-                streakInfo.innerHTML = `
-                    <div class="chain-label" style="font-size: 1.2rem; margin-bottom: 10px;">💥 チェイン終了</div>
-                    <div class="streak-stats">
-                        <div class="streak-stat-item">
-                            <span class="streak-stat-value">${freeLastStreak}</span>
-                            <span>到達チェイン</span>
-                        </div>
-                        <div class="streak-stat-item">
-                            <span class="streak-stat-value">${freeMaxStreak}</span>
-                            <span>最大チェイン</span>
-                        </div>
+    // シェアボタンとコピー機能を表示（両モード共通）
+    shareBtn.classList.remove("d-none");
+    const copyContainer = document.getElementById("result-copy-container");
+    if (copyContainer) copyContainer.classList.remove("d-none");
+
+    // ストリーク情報を設定して表示
+    if (streakInfo) {
+        const isWin = gameStatus === "WIN";
+        const streak = gameMode === "daily" ? dailyStreak : freeStreak;
+        const maxStreak = gameMode === "daily" ? dailyMaxStreak : freeMaxStreak;
+        const lastStreak = gameMode === "daily" ? dailyLastStreak : freeLastStreak;
+
+        if (isWin) {
+            let maxStreakHtml = "";
+            if (gameMode === "free") {
+                maxStreakHtml = `
+                    <div class="streak-stat-item">
+                        <span class="streak-stat-value">${maxStreak}</span>
+                        <span>最大チェイン</span>
                     </div>`;
             }
-            streakInfo.classList.remove("d-none");
+            streakInfo.innerHTML = `
+                <div class="chain-label" style="font-size: 1.2rem; margin-bottom: 10px;">🏆 ${streak >= 2 ? "チェイン継続中！" : "チェインスタート！"}</div>
+                <div class="streak-stats" ${gameMode === "daily" ? 'style="justify-content: center;"' : ''}>
+                    <div class="streak-stat-item">
+                        <span class="streak-stat-value">${streak}</span>
+                        <span>チェイン数</span>
+                    </div>
+                    ${maxStreakHtml}
+                </div>`;
+        } else {
+            // 敗北：チェイン終了
+            let maxStreakHtml = "";
+            if (gameMode === "free") {
+                maxStreakHtml = `
+                    <div class="streak-stat-item">
+                        <span class="streak-stat-value">${maxStreak}</span>
+                        <span>最大チェイン</span>
+                    </div>`;
+            }
+            streakInfo.innerHTML = `
+                <div class="chain-label" style="font-size: 1.2rem; margin-bottom: 10px;">💥 チェイン終了</div>
+                <div class="streak-stats" ${gameMode === "daily" ? 'style="justify-content: center;"' : ''}>
+                    <div class="streak-stat-item">
+                        <span class="streak-stat-value">${lastStreak}</span>
+                        <span>到達チェイン</span>
+                    </div>
+                    ${maxStreakHtml}
+                </div>`;
         }
-        
-        // フリーモードのサブタイトルを更新
+        streakInfo.classList.remove("d-none");
+    }
+    
+    // サブタイトルを更新
+    if (gameMode === "daily") {
+        const currentDisplayStreak = (gameStatus === "FAIL") ? dailyLastStreak : dailyStreak;
+        document.getElementById("mode-subtitle").textContent = `📅 デイリーモード｜${currentDisplayStreak}チェイン`;
+    } else {
         const currentDisplayStreak = (gameStatus === "FAIL") ? freeLastStreak : freeStreak;
-        document.getElementById("mode-subtitle").textContent = `🎮 フリーモード｜${currentDisplayStreak}チェイン ♪最大 ${freeMaxStreak}`;
+        document.getElementById("mode-subtitle").textContent = `🎮 フリーモード｜${currentDisplayStreak}チェイン（最大 ${freeMaxStreak}）`;
     }
 }
 
@@ -561,6 +636,10 @@ giveupBtn.addEventListener("click", () => {
             freeLastStreak = freeStreak; // リセット前に保存
             freeStreak = 0;
             saveFreeStreak();
+        } else if (gameMode === "daily") {
+            dailyLastStreak = dailyStreak;
+            dailyStreak = 0;
+            saveDailyStreak();
         }
         if (gameMode === "daily") {
             saveDailyState();
@@ -653,29 +732,35 @@ function generateShareText() {
     const attempt = gameStatus === "WIN" ? guesses.length : "X";
     const header = `${title} ${attempt}/${GAME_MAX_GUESSES}\n`;
 
-    // フリーモードの場合は「正解：名前　(チェイン)」行を追加
+    // 「正解：名前　(チェイン)」行を追加
     let extraLine = "";
+    const getChainEmoji = (chain) => {
+        const mod = chain % 100;
+        if (mod === 39) return "👍";
+        if (mod === 59) return "😭";
+        if (mod === 72) return "🎉👁\u200D🗨\uFE0F💍"; 
+        return "";
+    };
+
     if (gameMode === "free") {
         let chainText = "";
-        
-        const getChainEmoji = (chain) => {
-            const mod = chain % 100;
-            if (mod === 39) return "👍";
-            if (mod === 59) return "😭";
-            if (mod === 72) return "🎉👁\u200D🗨\uFE0F💍"; // 👁🗨は環境によってレンダリングが分かれるため \u200D を挟んだ合字を使用
-            return "";
-        };
-
         if (gameStatus === "WIN") {
-            // WIN時：2チェイン以上なら表示（1回の正解ならシンプルに表示させない、もしくは1チェイン！とする。ここでは1以上なら表示）
             chainText = freeStreak > 0 ? `${freeStreak}チェイン！${getChainEmoji(freeStreak)}` : "";
         } else {
-            // 失敗/降参時：チェインがあった場合のみシンプルに表示
             chainText = freeLastStreak > 0 ? `${freeLastStreak}チェイン${getChainEmoji(freeLastStreak)}` : "";
         }
         extraLine = chainText
             ? `正解：${targetWord}　${chainText}\n`
             : `正解：${targetWord}\n`;
+    } else if (gameMode === "daily") {
+        let chainText = "";
+        if (gameStatus === "WIN") {
+            chainText = dailyStreak > 0 ? `${dailyStreak}チェイン！${getChainEmoji(dailyStreak)}` : "";
+        } else {
+            chainText = dailyLastStreak > 0 ? `${dailyLastStreak}チェイン${getChainEmoji(dailyLastStreak)}` : "";
+        }
+        // デイリーモードはネタバレ防止のため正解名は出さず、チェインのみ出力
+        extraLine = chainText ? `${chainText}\n` : "";
     }
     
     let lines = new Array(GAME_MAX_GUESSES).fill("");
