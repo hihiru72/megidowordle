@@ -1,3 +1,11 @@
+@font-face {
+    font-family: 'GenEiLateMin';
+    src: url('GenEiLateMinN_v2.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
     --bg-color: #121213;
     --text-color: #ffffff;
@@ -27,7 +35,7 @@
 body {
     background-color: var(--bg-color);
     color: var(--text-color);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'GenEiLateMin', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     display: flex;
     justify-content: center;
     min-height: 100vh;
@@ -796,4 +804,24 @@ main {
     max-width: 320px;
     animation: popIn 0.3s ease;
 }
+
+.help-footer-note {
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 1px dashed var(--border-color);
+    text-align: left;
+    font-size: 11px;
+    color: #888;
+    line-height: 1.6;
+}
+
+.help-footer-note p {
+    margin-bottom: 10px;
+}
+
+.help-footer-note a {
+    color: #aaa;
+    text-decoration: underline;
+}
+
 
