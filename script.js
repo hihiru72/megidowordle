@@ -52,6 +52,7 @@ const megidoListContainer = document.getElementById("megido-list-container");
 const impulseBtn = document.getElementById("impulse-btn");
 const energyCount = document.getElementById("energy-count");
 const impulseHintsContainer = document.getElementById("impulse-hints");
+const impulseHelpModal = document.getElementById("impulse-help-modal");
 
 const MAX_WORD_LENGTH = 8;
 
@@ -591,6 +592,9 @@ function showResult() {
     // アニメーションと競合しないよう、requestAnimationFrameを挟む
     requestAnimationFrame(() => {
         resultModal.classList.remove("hidden");
+        // モーダルのスクロール位置を最上部にリセット
+        const modalContent = resultModal.querySelector(".modal-content");
+        if (modalContent) modalContent.scrollTop = 0;
     });
     
     resultTitle.textContent = gameStatus === "WIN" ? "勝算がある！" : "残念...";
@@ -763,13 +767,15 @@ closeListBtn.addEventListener("click", () => {
 });
 
 // モーダル外（背景）をタップ・クリックしたら閉じる（メギド72のUI仕様に準拠）
-[helpModal, listModal, resultModal].forEach(modal => {
-    modal.addEventListener("click", (e) => {
-        // クリックした要素がモーダル自身（背景）の場合のみ閉じる
-        if (e.target === modal) {
-            modal.classList.add("hidden");
-        }
-    });
+[helpModal, listModal, resultModal, impulseHelpModal].forEach(modal => {
+    if (modal) {
+        modal.addEventListener("click", (e) => {
+            // クリックした要素がモーダル自身（背景）の場合のみ閉じる
+            if (e.target === modal) {
+                modal.classList.add("hidden");
+            }
+        });
+    }
 });
 
 closeModalBtn.addEventListener("click", () => {
@@ -987,7 +993,6 @@ if (impulseBtn) {
 const closeImpulseHelpBtn = document.getElementById("close-impulse-help-btn");
 if (closeImpulseHelpBtn) {
     closeImpulseHelpBtn.addEventListener("click", () => {
-        const impulseHelpModal = document.getElementById("impulse-help-modal");
         if (impulseHelpModal) impulseHelpModal.classList.add("hidden");
     });
 }

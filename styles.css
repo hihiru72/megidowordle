@@ -160,7 +160,17 @@ main {
     width: 100%;
     margin-top: 5px;
     margin-bottom: 5px;
+    /* 常にコンパクトな表示にする */
+    transform: scale(0.8);
+    transform-origin: top center;
 }
+
+@media (max-width: 500px) {
+    #board-container {
+        transform: scale(0.75); /* スマホではよりコンパクトに */
+    }
+}
+
 
 #board {
     display: flex;
@@ -521,7 +531,7 @@ main {
     letter-spacing: 2px;
 }
 
-#share-btn, #next-btn, #close-modal-btn, #close-help-btn, .modal-close-bottom-btn {
+#share-btn, #next-btn, #close-modal-btn, #close-help-btn, #close-list-btn, .modal-close-bottom-btn {
     display: block;
     width: 100%;
     padding: 14px;
@@ -545,7 +555,7 @@ main {
     color: black;
 }
 
-#close-modal-btn, #close-help-btn, .modal-close-bottom-btn {
+#close-modal-btn, #close-help-btn, #close-list-btn, .modal-close-bottom-btn {
     background-color: transparent;
     border: 1px solid var(--border-color);
     margin-top: 20px;
@@ -786,3 +796,4 @@ main {
     max-width: 320px;
     animation: popIn 0.3s ease;
 }
+
