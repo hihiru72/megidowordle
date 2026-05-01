@@ -26,6 +26,7 @@
             <div id="hint-container">
                 <span id="hint-text">本日の文字数: <strong id="word-length-hint">0</strong>文字</span>
             </div>
+            <div id="impulse-hints" class="impulse-hints-container"></div>
             <div id="board-container">
                 <div id="board"></div>
             </div>
@@ -42,6 +43,10 @@
                 <div id="play-again-container" class="d-none">
                     <button id="play-again-btn">もう一回あそぶ（フリーモード）</button>
                 </div>
+                <button id="impulse-btn" class="btn-disabled" disabled title="フォトンインパルス">
+                    <span class="btn-icon">⚛</span>
+                    <span class="btn-label" id="energy-count">0</span>
+                </button>
                 <button id="list-btn" title="メギド一覧">📋</button>
             </div>
             <!-- 失敗・降参時の正解表示（fixed領域内なので常に見える） -->
@@ -118,8 +123,29 @@
         </div>
     </div>
 
+    <div id="impulse-help-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>フォトンインパルスとは？</h2>
+            <p style="text-align: left; font-size: 14px; line-height: 1.6; margin-bottom: 10px;">
+                文字数が少ない（空きマスが多い）メギドを入力すると、その分「エネルギー」が蓄積されます。（最大35）<br><br>
+                エネルギーが25以上溜まると「リリース」ボタンが押せるようになり、正解のメギドに関するヒントを解放できます！<br><br>
+                <span style="color: #e58eb2;">・25以上：</span>ヒント1つ解放<br>
+                <span style="color: #bc13fe;">・30以上：</span>ヒント2つ解放<br>
+                <span style="color: #ff1a8c;">・35（最大）：</span>ヒント3つ解放<br><br>
+                <span style="color: #a1a1aa; font-size: 13px;">
+                ※リリースは1ゲームにつき1回しか使用できません。溜め切ってから一気に解放するか、早めに手がかりを得るか、戦略的に使いましょう！<br>
+                ※ヒントは必ずしも有用なものではないので、無理に狙いにいくのはオススメしません。<br>
+                ※回答はリジェネレイト前後を区別しませんが、ヒントはリジェネ後のものが表示される場合があります。<br>
+                ※ネルガルはリジェネ後だけ飛行特性を持ち、ダンタリオンなど一部メギドは属性が異なります。
+                </span>
+            </p>
+            <button id="close-impulse-help-btn" class="modal-close-bottom-btn" style="margin-top: 20px; width: 100%; padding: 14px; border-radius: 8px; font-weight: bold; background-color: #272729; color: white; border: 1px solid var(--border-color); cursor: pointer;">わかった</button>
+        </div>
+    </div>
+
     <!-- スクリプトの読み込み -->
     <script src="characters.js"></script>
+    <script src="hints.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

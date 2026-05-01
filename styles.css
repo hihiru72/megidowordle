@@ -156,10 +156,10 @@ main {
 #board-container {
     display: flex;
     justify-content: center;
-    align-items: center;
-    flex-grow: 1;
+    align-items: flex-start;
     width: 100%;
-    margin-bottom: 10px; /* 20pxから10pxへ */
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 #board {
@@ -293,6 +293,8 @@ main {
     max-width: 400px;
     gap: 6px;
     align-items: stretch;
+    justify-content: center;
+    margin: 0 auto;
 }
 
 #input-container {
@@ -645,4 +647,103 @@ main {
         font-size: 10px;
         padding: 3px 6px;
     }
+}
+
+/* Impulse Button */
+#impulse-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+#impulse-btn .btn-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+#impulse-btn .btn-label {
+    font-size: 9px;
+    white-space: nowrap;
+}
+
+#impulse-btn.btn-disabled {
+    background-color: #272729;
+    color: #fff; /* 灰色から白に変更 */
+    border: 1px solid var(--border-color);
+    cursor: help; /* not-allowedからhelpに変更 */
+}
+#impulse-btn.btn-disabled .btn-label {
+    color: #fff; /* 灰色から白に変更 */
+}
+
+#impulse-btn.btn-ready-1 {
+    background-color: #e58eb2; /* 薄ピンク */
+    color: white;
+    border: 1px solid #ffb3d9;
+    box-shadow: 0 0 8px rgba(229, 142, 178, 0.6);
+    cursor: pointer;
+}
+#impulse-btn.btn-ready-1 .btn-label {
+    color: white;
+}
+
+#impulse-btn.btn-ready-2 {
+    background-color: #9370db; /* 紫 */
+    color: white;
+    border: 1px solid #bc13fe;
+    box-shadow: 0 0 10px rgba(147, 112, 219, 0.8);
+    cursor: pointer;
+}
+#impulse-btn.btn-ready-2 .btn-label {
+    color: white;
+}
+
+#impulse-btn.btn-ready-3 {
+    background-color: #a0005a; /* 濃い赤紫 */
+    color: white;
+    border: 1px solid #ff1a8c;
+    box-shadow: 0 0 15px rgba(160, 0, 90, 0.9);
+    cursor: pointer;
+}
+#impulse-btn.btn-ready-3 .btn-label {
+    color: white;
+}
+
+#impulse-btn.btn-exhausted {
+    background-color: #272729;
+    color: #555;
+    border: 1px solid var(--border-color);
+    cursor: not-allowed;
+}
+#impulse-btn.btn-exhausted .btn-label {
+    color: #555;
+}
+
+/* Impulse Hints Display */
+#impulse-hints {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 2px;
+    align-items: center;
+    width: 100%;
+}
+
+.impulse-hint-item {
+    background-color: rgba(147, 112, 219, 0.15);
+    border: 1px solid #9370db;
+    color: #e0d0ff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.2;
+    text-align: center;
+    width: 95%;
+    max-width: 320px;
+    animation: popIn 0.3s ease;
 }

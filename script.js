@@ -6,6 +6,11 @@ let gameMode = "daily"; // 'daily' or 'free'
 let gameStatus = "IN_PROGRESS"; // 'IN_PROGRESS', 'WIN', 'FAIL'
 let resultTimer = null;
 
+let currentEnergy = 0;
+let revealedHints = [];
+let impulseUsed = false;
+let currentHintTheme = null;
+
 // フリーモード連続正解ストリーク
 let freeStreak = 0;
 let freeMaxStreak = 0;
@@ -44,6 +49,9 @@ const showListBtn = document.getElementById("show-list-btn"); // 遠び方モー
 const listBtn = document.getElementById("list-btn"); // 入力欄横のボタン
 const closeListBtn = document.getElementById("close-list-btn");
 const megidoListContainer = document.getElementById("megido-list-container");
+const impulseBtn = document.getElementById("impulse-btn");
+const energyCount = document.getElementById("energy-count");
+const impulseHintsContainer = document.getElementById("impulse-hints");
 
 const MAX_WORD_LENGTH = 8;
 
@@ -138,6 +146,14 @@ function loadDailyStreak() {
     }
 }
 
+const getChainEmoji = (chain) => {
+    const mod = chain % 100;
+    if (mod === 39) return "👍";
+    if (mod === 59) return "😭";
+    if (mod === 72) return "🎉👁\u200D🗨\uFE0F💍"; 
+    return "";
+};
+
 function initGame() {
     loadDailyStreak(); // ここでロードして最新状態にする
 
@@ -152,6 +168,10 @@ function initGame() {
     if (gameMode === "daily") {
         targetWord = getDailyTarget();
         loadDailyState();
+        if (!currentHintTheme) {
+            const possibleThemes = typeof MEGIDO_HINTS !== 'undefined' ? Object.keys(MEGIDO_HINTS).filter(key => key.replace(/[CRB]$/, '') === targetWord) : [];
+            currentHintTheme = possibleThemes.length > 0 ? possibleThemes[Math.floor(Math.random() * possibleThemes.length)] : targetWord;
+        }
         if (gameStatus !== "IN_PROGRESS") {
             resultTimer = setTimeout(showResult, 500);
         }
@@ -159,6 +179,11 @@ function initGame() {
         targetWord = getRandomTarget();
         guesses = [];
         gameStatus = "IN_PROGRESS";
+        currentEnergy = 0;
+        revealedHints = [];
+        impulseUsed = false;
+        const possibleThemes = typeof MEGIDO_HINTS !== 'undefined' ? Object.keys(MEGIDO_HINTS).filter(key => key.replace(/[CRB]$/, '') === targetWord) : [];
+        currentHintTheme = possibleThemes.length > 0 ? possibleThemes[Math.floor(Math.random() * possibleThemes.length)] : targetWord;
     }
 
     currentGuess = "";
@@ -188,6 +213,17 @@ function initGame() {
         colorGuessRow(i, guesses[i], targetWord);
     }
 
+    if (impulseHintsContainer) impulseHintsContainer.innerHTML = "";
+    if (revealedHints && revealedHints.length > 0) {
+        revealedHints.forEach(hint => {
+            const div = document.createElement("div");
+            div.className = "impulse-hint-item";
+            div.textContent = hint;
+            if (impulseHintsContainer) impulseHintsContainer.appendChild(div);
+        });
+    }
+    if (typeof updateImpulseUI === 'function') updateImpulseUI();
+
     updateUI();
 }
 
@@ -199,7 +235,11 @@ function saveDailyState() {
     const dateStr = getDateString(new Date());
     const state = {
         guesses: guesses,
-        gameStatus: gameStatus
+        gameStatus: gameStatus,
+        currentEnergy: currentEnergy,
+        revealedHints: revealedHints,
+        impulseUsed: impulseUsed,
+        currentHintTheme: currentHintTheme
     };
     localStorage.setItem(`megido-wordle-${dateStr}`, JSON.stringify(state));
 }
@@ -211,9 +251,17 @@ function loadDailyState() {
         const state = JSON.parse(saved);
         guesses = state.guesses || [];
         gameStatus = state.gameStatus || "IN_PROGRESS";
+        currentEnergy = state.currentEnergy || 0;
+        revealedHints = state.revealedHints || [];
+        impulseUsed = state.impulseUsed || false;
+        currentHintTheme = state.currentHintTheme || null;
     } else {
         guesses = [];
         gameStatus = "IN_PROGRESS";
+        currentEnergy = 0;
+        revealedHints = [];
+        impulseUsed = false;
+        currentHintTheme = null;
     }
 }
 
@@ -377,6 +425,12 @@ async function handleSubmit() {
     const rowIdx = guesses.length;
     const guessToEval = currentGuess;
     
+    let gainedEnergy = 8 - guessToEval.length;
+    if (gainedEnergy > 0) {
+        currentEnergy += gainedEnergy;
+        if (typeof updateImpulseUI === 'function') updateImpulseUI();
+    }
+    
     guesses.push(guessToEval);
     
     // アニメーションは非同期で実行し、待機しない
@@ -490,6 +544,8 @@ function updateUI() {
     if (gameStatus !== "IN_PROGRESS") {
         inputContainer.classList.add("d-none");
         playAgainContainer.classList.remove("d-none");
+        if (impulseBtn) impulseBtn.classList.add("d-none");
+        
         // 失敗・降参時はbottom-controls内に正解を表示
         if (gameStatus === "FAIL") {
             const megidoInfo = MEGIDO_LIST.find(m => m.name.replace(/[RBC]$/, "") === targetWord);
@@ -505,6 +561,7 @@ function updateUI() {
     } else {
         inputContainer.classList.remove("d-none");
         playAgainContainer.classList.add("d-none");
+        if (impulseBtn) impulseBtn.classList.remove("d-none");
         answerDisplay.style.display = "none";
         guessInput.disabled = false;
         submitBtn.disabled = false;
@@ -580,8 +637,9 @@ function showResult() {
                         <span>最大チェイン</span>
                     </div>`;
             }
+            const trophy = getChainEmoji(streak) || "🏆";
             streakInfo.innerHTML = `
-                <div class="chain-label" style="font-size: 1.2rem; margin-bottom: 10px;">🏆 ${streak >= 2 ? "チェイン継続中！" : "チェインスタート！"}</div>
+                <div class="chain-label" style="font-size: 1.2rem; margin-bottom: 10px;">${trophy} ${streak >= 2 ? "チェイン継続中！" : "チェインスタート！"}</div>
                 <div class="streak-stats" ${gameMode === "daily" ? 'style="justify-content: center;"' : ''}>
                     <div class="streak-stat-item">
                         <span class="streak-stat-value">${streak}</span>
@@ -730,17 +788,11 @@ nextBtn.addEventListener("click", () => {
 function generateShareText() {
     const title = `メギドWordle (${gameMode === "daily" ? "デイリーモード" : "フリーモード"})`;
     const attempt = gameStatus === "WIN" ? guesses.length : "X";
-    const header = `${title} ${attempt}/${GAME_MAX_GUESSES}\n`;
+    const impulseIcon = impulseUsed ? "⚛️" : "";
+    const header = `${title} ${attempt}/${GAME_MAX_GUESSES}${impulseIcon}\n`;
 
     // 「正解：名前　(チェイン)」行を追加
     let extraLine = "";
-    const getChainEmoji = (chain) => {
-        const mod = chain % 100;
-        if (mod === 39) return "👍";
-        if (mod === 59) return "😭";
-        if (mod === 72) return "🎉👁\u200D🗨\uFE0F💍"; 
-        return "";
-    };
 
     if (gameMode === "free") {
         let chainText = "";
@@ -831,6 +883,112 @@ if (copyTextBtn) {
                 copyTextBtn.textContent = originalText;
             }, 2000);
         });
+    });
+}
+
+// Impulse Logic
+function updateImpulseUI() {
+    if (!impulseBtn || !energyCount) return;
+    const targetHints = (typeof MEGIDO_HINTS !== 'undefined' && currentHintTheme && MEGIDO_HINTS[currentHintTheme]) ? MEGIDO_HINTS[currentHintTheme] : [];
+    
+    if (targetHints.length === 0) {
+        impulseBtn.disabled = true;
+        impulseBtn.className = "btn-disabled";
+        energyCount.textContent = "0";
+        return;
+    }
+
+    if (impulseUsed) {
+        impulseBtn.disabled = false; // クリックしてメッセージを出せるように
+        impulseBtn.className = "btn-exhausted";
+        energyCount.textContent = "消耗";
+        return;
+    }
+
+    if (currentEnergy > 35) {
+        currentEnergy = 35; // 上限を35に固定
+    }
+
+    if (currentEnergy === 35) {
+        energyCount.textContent = "最大";
+    } else {
+        energyCount.textContent = currentEnergy;
+    }
+
+    if (currentEnergy >= 35) {
+        impulseBtn.disabled = false;
+        impulseBtn.className = "btn-ready-3";
+    } else if (currentEnergy >= 30) {
+        impulseBtn.disabled = false;
+        impulseBtn.className = "btn-ready-2";
+    } else if (currentEnergy >= 25) {
+        impulseBtn.disabled = false;
+        impulseBtn.className = "btn-ready-1";
+    } else {
+        impulseBtn.disabled = false; // ヘルプを表示させるためクリック可能にする
+        impulseBtn.className = "btn-disabled";
+    }
+}
+
+if (impulseBtn) {
+    impulseBtn.addEventListener("click", () => {
+        if (impulseUsed) {
+            showMessage("リリースは1回しか使用できません");
+            impulseBtn.blur();
+            return;
+        }
+
+        if (currentEnergy < 25) {
+            const impulseHelpModal = document.getElementById("impulse-help-modal");
+            if (impulseHelpModal) impulseHelpModal.classList.remove("hidden");
+            impulseBtn.blur();
+            return;
+        }
+        
+        let hintsToReveal = 1;
+        if (currentEnergy >= 35) {
+            hintsToReveal = 3;
+        } else if (currentEnergy >= 30) {
+            hintsToReveal = 2;
+        }
+
+        impulseUsed = true;
+        currentEnergy = 0;
+        
+        const targetHints = (typeof MEGIDO_HINTS !== 'undefined' && currentHintTheme && MEGIDO_HINTS[currentHintTheme]) ? MEGIDO_HINTS[currentHintTheme] : [];
+        const availableHints = targetHints.filter(h => !revealedHints.includes(h));
+        
+        if (availableHints.length > 0) {
+            for (let i = availableHints.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [availableHints[i], availableHints[j]] = [availableHints[j], availableHints[i]];
+            }
+
+            const pickedHints = availableHints.slice(0, Math.min(hintsToReveal, availableHints.length));
+            revealedHints.push(...pickedHints);
+
+            pickedHints.forEach(hint => {
+                const div = document.createElement("div");
+                div.className = "impulse-hint-item";
+                div.textContent = hint;
+                if (impulseHintsContainer) impulseHintsContainer.appendChild(div);
+            });
+        }
+
+        updateImpulseUI();
+        if (gameMode === "daily") {
+            saveDailyState();
+        }
+        
+        impulseBtn.blur();
+    });
+}
+
+const closeImpulseHelpBtn = document.getElementById("close-impulse-help-btn");
+if (closeImpulseHelpBtn) {
+    closeImpulseHelpBtn.addEventListener("click", () => {
+        const impulseHelpModal = document.getElementById("impulse-help-modal");
+        if (impulseHelpModal) impulseHelpModal.classList.add("hidden");
     });
 }
 
