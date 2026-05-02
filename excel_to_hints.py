@@ -76,6 +76,26 @@ def convert_csv_to_hints():
                 if attr and attr not in ['-', '‐', '―', 'ー']:
                     hints.append(f"内部属性：{attr}")
 
+                # トランス
+                trance = row.get('トランス', '').strip()
+                if trance and trance not in ['-', '‐', '―', 'ー']:
+                    hints.append(f"__TRANCE__:{trance}")
+
+                # 蘇生技
+                resurrection = row.get('蘇生技', '').strip()
+                if resurrection and resurrection not in ['-', '‐', '―', 'ー']:
+                    hints.append("味方を蘇生できる")
+
+                # オーラ
+                aura = row.get('オーラ', '').strip()
+                if aura and aura not in ['-', '‐', '―', 'ー']:
+                    hints.append("オーラを付与できる")
+
+                # 地形
+                terrain = row.get('地形', '').strip()
+                if terrain and terrain not in ['-', '‐', '―', 'ー']:
+                    hints.append(f"__TERRAIN__:{terrain}")
+
                 hints_dict[name] = hints
 
         with open(js_file, 'w', encoding='utf-8') as f:

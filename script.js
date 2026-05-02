@@ -155,6 +155,22 @@ const getChainEmoji = (chain) => {
     return "";
 };
 
+function formatImpulseHint(hint) {
+    const isLastOne = guesses.length >= (GAME_MAX_GUESSES - 1);
+    
+    if (hint.startsWith("__TRANCE__:")) {
+        const name = hint.replace("__TRANCE__:", "");
+        return isLastOne ? `${name}を展開する` : "トランスを展開する";
+    }
+    
+    if (hint.startsWith("__TERRAIN__:")) {
+        const name = hint.replace("__TERRAIN__:", "");
+        return isLastOne ? `${name}を付与できる` : "地形を付与できる";
+    }
+    
+    return hint;
+}
+
 function initGame() {
     loadDailyStreak(); // ここでロードして最新状態にする
 
@@ -219,7 +235,7 @@ function initGame() {
         revealedHints.forEach(hint => {
             const div = document.createElement("div");
             div.className = "impulse-hint-item";
-            div.textContent = hint;
+            div.textContent = formatImpulseHint(hint);
             if (impulseHintsContainer) impulseHintsContainer.appendChild(div);
         });
     }
@@ -976,7 +992,7 @@ if (impulseBtn) {
             pickedHints.forEach(hint => {
                 const div = document.createElement("div");
                 div.className = "impulse-hint-item";
-                div.textContent = hint;
+                div.textContent = formatImpulseHint(hint);
                 if (impulseHintsContainer) impulseHintsContainer.appendChild(div);
             });
         }
@@ -1001,3 +1017,151 @@ if (closeImpulseHelpBtn) {
 loadFreeStreak(); // ストリークをlocalStorageから復元
 loadSolvedMegidos(); // 正解済みメギドを復元
 initGame();
+
+// === DEBUG / ADMIN TOOLS (Trigger: ?FF11) ===
+(function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.has('FF11')) return;
+
+    console.log("🛠️ Admin Mode Active");
+
+    // 1. Force Target Word (?debug=マルコシアス)
+    const debugTarget = urlParams.get('debug');
+    if (debugTarget && (typeof MEGIDO_CHARACTERS !== 'undefined' && MEGIDO_CHARACTERS.includes(debugTarget))) {
+        targetWord = debugTarget;
+        const possibleThemes = typeof MEGIDO_HINTS !== 'undefined' ? Object.keys(MEGIDO_HINTS).filter(key => key.replace(/[CRB]$/, '') === targetWord) : [];
+        currentHintTheme = possibleThemes.length > 0 ? possibleThemes[Math.floor(Math.random() * possibleThemes.length)] : targetWord;
+        console.log("🎯 Target forced to:", targetWord);
+        updateUI();
+    }
+
+    // 2. Set Streak (?chain=72)
+    const debugChain = urlParams.get('chain');
+    if (debugChain !== null) {
+        const val = parseInt(debugChain);
+        if (gameMode === "daily") dailyStreak = val; else freeStreak = val;
+        updateUI();
+    }
+
+    // 3. Set Energy (?energy=35)
+    const debugEnergy = urlParams.get('energy');
+    if (debugEnergy !== null) {
+        currentEnergy = parseInt(debugEnergy);
+        if (typeof updateImpulseUI === 'function') updateImpulseUI();
+    }
+
+    // 4. Force Hints (?hints=1)
+    if (urlParams.get('hints') === '1') {
+        revealAllHintsDebug();
+    }
+
+    // 5. Instant Status (?status=win/fail)
+    const debugStatus = urlParams.get('status');
+    if (debugStatus === 'win') { gameStatus = "WIN"; showResult(); }
+    else if (debugStatus === 'fail') { gameStatus = "FAIL"; showResult(); }
+
+    // 6. Reset All Data (?reset=1)
+    if (urlParams.get('reset') === '1') {
+        setTimeout(() => {
+            if (confirm("【警告】すべてのプレイデータをリセットしますか？\n（星マーク、チェイン記録などがすべて消去されます）")) {
+                resetAllData();
+            }
+        }, 500);
+    }
+
+    // --- Dynamic Debug Panel ---
+    createDebugPanel();
+
+    function revealAllHintsDebug() {
+        const targetHints = (typeof MEGIDO_HINTS !== 'undefined' && currentHintTheme && MEGIDO_HINTS[currentHintTheme]) ? MEGIDO_HINTS[currentHintTheme] : [];
+        revealedHints = [...targetHints];
+        if (typeof impulseHintsContainer !== 'undefined' && impulseHintsContainer) {
+            impulseHintsContainer.innerHTML = "";
+            revealedHints.forEach(hint => {
+                const div = document.createElement("div");
+                div.className = "impulse-hint-item";
+                div.textContent = typeof formatImpulseHint === 'function' ? formatImpulseHint(hint) : hint;
+                impulseHintsContainer.appendChild(div);
+            });
+        }
+        impulseUsed = true;
+        if (typeof updateImpulseUI === 'function') updateImpulseUI();
+    }
+
+    function resetAllData() {
+        localStorage.removeItem("megido-wordle-streak");
+        localStorage.removeItem("megido-wordle-solved");
+        localStorage.removeItem("megido-wordle-daily-streak");
+        const dateStr = `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}`;
+        localStorage.removeItem(`megido-wordle-${dateStr}`);
+        alert("データをリセットしました。ページをリロードします。");
+        window.location.href = window.location.pathname;
+    }
+
+    function createDebugPanel() {
+        const panel = document.createElement("div");
+        panel.id = "admin-panel";
+        panel.style.cssText = "position:fixed;top:0;left:0;right:0;background:rgba(20,20,30,0.95);border-bottom:2px solid #9370db;z-index:9999;padding:8px;font-family:sans-serif;font-size:12px;color:white;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.5);";
+        
+        panel.innerHTML = `
+            <b style="color:#bc13fe">🛠️ ADMIN</b>
+            <div style="display:flex;gap:4px">
+                <input type="text" id="db-target" placeholder="答え強制" style="width:80px;background:#111;color:#fff;border:1px solid #444;border-radius:3px;padding:2px">
+                <button id="db-apply-target" style="background:#9370db;border:none;color:white;padding:2px 6px;border-radius:3px;cursor:pointer">適用</button>
+            </div>
+            <div style="display:flex;gap:4px">
+                <input type="number" id="db-chain" placeholder="Chain" style="width:40px;background:#111;color:#fff;border:1px solid #444;border-radius:3px;padding:2px">
+                <button id="db-apply-chain" style="background:#9370db;border:none;color:white;padding:2px 6px;border-radius:3px;cursor:pointer">適用</button>
+            </div>
+            <button id="db-hint" style="background:#4b0082;border:none;color:white;padding:2px 8px;border-radius:3px;cursor:pointer">💡 ヒント全開</button>
+            <button id="db-win" style="background:#2d6a4f;border:none;color:white;padding:2px 8px;border-radius:3px;cursor:pointer">🏆 WIN</button>
+            <button id="db-fail" style="background:#8b0000;border:none;color:white;padding:2px 8px;border-radius:3px;cursor:pointer">💥 FAIL</button>
+            <button id="db-reset" style="background:#444;border:none;color:gray;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:10px">🗑️ RESET</button>
+        `;
+
+        document.body.appendChild(panel);
+        
+        document.getElementById("db-apply-target").onclick = () => {
+            const val = document.getElementById("db-target").value;
+            if (typeof MEGIDO_CHARACTERS !== 'undefined' && MEGIDO_CHARACTERS.includes(val)) {
+                targetWord = val;
+                const possibleThemes = typeof MEGIDO_HINTS !== 'undefined' ? Object.keys(MEGIDO_HINTS).filter(key => key.replace(/[CRB]$/, '') === targetWord) : [];
+                currentHintTheme = possibleThemes.length > 0 ? possibleThemes[Math.floor(Math.random() * possibleThemes.length)] : targetWord;
+                if (typeof showMessage === 'function') showMessage("Target Word: " + targetWord);
+                updateUI();
+            } else {
+                if (typeof showMessage === 'function') showMessage("Unknown Megido");
+            }
+        };
+
+        document.getElementById("db-apply-chain").onclick = () => {
+            const val = parseInt(document.getElementById("db-chain").value);
+            if (!isNaN(val)) {
+                if (gameMode === "daily") dailyStreak = val; else freeStreak = val;
+                updateUI();
+                if (typeof showMessage === 'function') showMessage("Streak set to " + val);
+            }
+        };
+
+        document.getElementById("db-hint").onclick = () => {
+            revealAllHintsDebug();
+            if (typeof showMessage === 'function') showMessage("Hints revealed");
+        };
+
+        document.getElementById("db-win").onclick = () => {
+            currentGuess = targetWord;
+            if (typeof handleSubmit === 'function') handleSubmit();
+        };
+
+        document.getElementById("db-fail").onclick = () => {
+            guesses = new Array(GAME_MAX_GUESSES).fill("ブネ");
+            gameStatus = "FAIL";
+            updateUI();
+            if (typeof showResult === 'function') showResult();
+        };
+
+        document.getElementById("db-reset").onclick = () => {
+            if (confirm("すべてのデータを消去しますか？")) resetAllData();
+        };
+    }
+})();
