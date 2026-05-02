@@ -88,25 +88,26 @@
                     <div class="tile-row">
                         <div class="tile correct">マ</div>
                         <div class="tile correct">ル</div>
-                        <div class="tile">バ</div>
-                        <div class="tile">ス</div>
+                        <div class="tile absent">バ</div>
+                        <div class="tile absent">ス</div>
                     </div>
                     <p><strong>マ ル</strong> は名前の中に含まれており、位置も合っています。</p>
                 </div>
                 <div class="help-example">
                     <div class="tile-row">
                         <div class="tile present">ス</div>
-                        <div class="tile">ト</div>
-                        <div class="tile">ラ</div>
-                        <div class="tile">ス</div>
+                        <div class="tile absent">ト</div>
+                        <div class="tile absent">ラ</div>
+                        <div class="tile absent">ス</div>
                     </div>
                     <p>最初の <strong>ス</strong> は名前の中に含まれていますが、位置が違います。</p>
                 </div>
                 <div class="help-example">
                     <div class="tile-row">
                         <div class="tile absent">ブ</div>
-                        <div class="tile">ネ</div>
+                        <div class="tile absent">ネ</div>
                     </div>
+                    <p><strong>ブ</strong> も <strong>ネ</strong> も名前の中に含まれません。</p>
                 </div>
             </div>
             
@@ -150,6 +151,7 @@
 
     <!-- スクリプトの読み込み -->
     <script src="characters.js"></script>
+    <script src="mob_characters.js"></script>
     <script src="hints.js"></script>
     <script src="script.js"></script>
 </body>

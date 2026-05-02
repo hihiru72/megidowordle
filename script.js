@@ -418,7 +418,11 @@ async function handleSubmit() {
     }
 
     if (!MEGIDO_CHARACTERS.includes(currentGuess)) {
-        showMessage("召喚されているメギドの名前を入力してください");
+        if (typeof MOB_CHARACTERS !== 'undefined' && MOB_CHARACTERS.includes(currentGuess)) {
+            showMessage("軍団員のメギドではありません");
+        } else {
+            showMessage("リストにないメギドです");
+        }
         shakeCurrentRow();
         setTimeout(() => {
             currentGuess = "";
