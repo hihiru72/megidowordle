@@ -819,6 +819,34 @@ main {
     animation: popIn 0.3s ease;
 }
 
+.help-modes {
+    margin-top: 20px;
+    text-align: left;
+    border-top: 1px solid var(--border-color);
+    padding-top: 15px;
+}
+
+.help-modes h3 {
+    font-size: 16px;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+.help-mode-item {
+    margin-bottom: 15px;
+}
+
+.help-mode-item p:first-child {
+    font-size: 14px;
+    margin-bottom: 3px;
+}
+
+.help-mode-item p:last-child {
+    font-size: 12px;
+    color: #ccc;
+    line-height: 1.5;
+}
+
 .help-footer-note {
     margin-top: 25px;
     padding-top: 15px;
