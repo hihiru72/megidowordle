@@ -748,9 +748,46 @@ closeHelpBtn.addEventListener("click", () => {
 
 // 入力欄横の一覧ボタンのイベントリスナー
 function openListModal() {
-    // リストを常に再生成して既入力名を色付ける
+    // カウント用の集計
+    let mainSolvedCount = 0;
+    let extraSolvedCount = 0;
+    let mainTotalCount = 0;
+    const mainCategories = ["祖", "真", "継", "宵"];
+
+    // MEGIDO_LISTを走査して、画面に表示される星の数を直接集計
+    MEGIDO_LIST.forEach(m => {
+        const cat = m.id.charAt(0);
+        const isMain = mainCategories.includes(cat);
+        const isSolved = solvedMegidos.has(m.id);
+
+        if (isMain) {
+            mainTotalCount++;
+            if (isSolved) mainSolvedCount++;
+        } else {
+            if (isSolved) extraSolvedCount++;
+        }
+    });
+
+    // リストを生成
     let currentCategory = "";
     let html = "";
+    
+    // カウント表示HTML（リストの最上部に挿入）
+    if (mainSolvedCount > 0 || extraSolvedCount > 0) {
+        let countText = "";
+        if (mainSolvedCount >= mainTotalCount && mainTotalCount > 0) {
+            countText = "⭐: Complete!";
+        } else {
+            countText = "⭐: " + mainSolvedCount;
+        }
+
+        if (extraSolvedCount > 0) {
+            countText += ` <span style="font-size: 0.9em; margin-left: 10px; color: var(--primary-color); opacity: 0.8;">(他: ${extraSolvedCount})</span>`;
+        }
+        
+        html += `<div class="megido-count">${countText}</div>`;
+    }
+
     MEGIDO_LIST.forEach(m => {
         const cat = m.id.charAt(0);
         if (cat !== currentCategory) {
