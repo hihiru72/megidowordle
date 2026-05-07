@@ -412,7 +412,7 @@ async function handleSubmit() {
     }
 
     if (!isKatakana(currentGuess)) {
-        showMessage("カタカナで入力してください");
+        showMessage("カタカナもしくはひらがなで入力してください");
         shakeCurrentRow();
         return;
     }
@@ -421,7 +421,7 @@ async function handleSubmit() {
         if (typeof MOB_CHARACTERS !== 'undefined' && MOB_CHARACTERS.includes(currentGuess)) {
             showMessage("軍団員のメギドではありません");
         } else {
-            showMessage("リストにないメギドです");
+            showMessage("カタカナもしくはひらがなで入力してください");
         }
         shakeCurrentRow();
         setTimeout(() => {
