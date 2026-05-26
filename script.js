@@ -22,6 +22,10 @@ let dailyMaxStreak = 0;
 let dailyLastStreak = 0;
 let dailyLastWinDate = "";
 
+let hardStreak = 0;
+let hardMaxStreak = 0;
+let hardLastStreak = 0;
+let solvedHardMegidos = new Set();
 let solvedMegidos = new Set(); // 正解済みのメギドID（または名前）を保持
 
 // DOM Elements
@@ -137,6 +141,27 @@ function saveDailyStreak() {
 }
 
 // デイリーストリークの読み込み
+
+function loadHardStreak() {
+    const saved = localStorage.getItem("megido-wordle-hard-streak");
+    if (saved) {
+        const data = JSON.parse(saved);
+        hardStreak = data.streak || 0;
+        hardMaxStreak = data.maxStreak || 0;
+    }
+}
+function saveHardStreak() {
+    localStorage.setItem("megido-wordle-hard-streak", JSON.stringify({streak: hardStreak, maxStreak: hardMaxStreak}));
+}
+function loadHardSolvedMegidos() {
+    const saved = localStorage.getItem("megido-wordle-hard-solved");
+    if (saved) {
+        solvedHardMegidos = new Set(JSON.parse(saved));
+    }
+}
+function saveHardSolvedMegidos() {
+    localStorage.setItem("megido-wordle-hard-solved", JSON.stringify([...solvedHardMegidos]));
+}
 function loadDailyStreak() {
     const saved = localStorage.getItem("megido-wordle-daily-streak");
     if (saved) {
@@ -181,6 +206,12 @@ function initGame() {
     // 常にモーダルを隠す（モード切替時の表示バグ修正）
     resultModal.classList.add("hidden");
 
+    if (gameMode === "hard") {
+        document.body.classList.add("hard-mode");
+    } else {
+        document.body.classList.remove("hard-mode");
+    }
+
     // Load state from local storage if daily
     if (gameMode === "daily") {
         targetWord = getDailyTarget();
@@ -192,6 +223,20 @@ function initGame() {
         if (gameStatus !== "IN_PROGRESS") {
             resultTimer = setTimeout(showResult, 500);
         }
+    } else if (gameMode === "hard") {
+        const allNames = [...MEGIDO_CHARACTERS];
+        if (typeof HARD_LIST !== 'undefined') allNames.push(...HARD_LIST.filter(m => m.isMajor).map(m => m.name));
+        targetWord = allNames[Math.floor(Math.random() * allNames.length)];
+        guesses = [];
+        gameStatus = "IN_PROGRESS";
+        currentEnergy = 0;
+        revealedHints = [];
+        impulseUsed = false;
+        let possibleThemes = [];
+        if (MEGIDO_CHARACTERS.includes(targetWord) && typeof MEGIDO_HINTS !== 'undefined') {
+            possibleThemes = Object.keys(MEGIDO_HINTS).filter(key => key.replace(/[CRB]$/, '') === targetWord);
+        }
+        currentHintTheme = possibleThemes.length > 0 ? possibleThemes[Math.floor(Math.random() * possibleThemes.length)] : targetWord;
     } else {
         targetWord = getRandomTarget();
         guesses = [];
@@ -418,18 +463,24 @@ async function handleSubmit() {
     }
 
     if (!MEGIDO_CHARACTERS.includes(currentGuess)) {
-        if (typeof MOB_CHARACTERS !== 'undefined' && MOB_CHARACTERS.includes(currentGuess)) {
-            showMessage("軍団員のメギドではありません");
+        if (gameMode === "hard") {
+            const isHardModeTarget = typeof HARD_LIST !== 'undefined' && HARD_LIST.some(m => m.name === currentGuess);
+            if (!isHardModeTarget) {
+                showMessage("カタカナもしくはひらがなで入力してください");
+                shakeCurrentRow();
+                setTimeout(() => { currentGuess = ""; guessInput.value = ""; updateCurrentRowUI(); }, 450);
+                return;
+            }
         } else {
-            showMessage("カタカナもしくはひらがなで入力してください");
+            if (typeof MOB_CHARACTERS !== 'undefined' && MOB_CHARACTERS.includes(currentGuess)) {
+                showMessage("軍団員のメギドではありません");
+            } else {
+                showMessage("カタカナもしくはひらがなで入力してください");
+            }
+            shakeCurrentRow();
+            setTimeout(() => { currentGuess = ""; guessInput.value = ""; updateCurrentRowUI(); }, 450);
+            return;
         }
-        shakeCurrentRow();
-        setTimeout(() => {
-            currentGuess = "";
-            guessInput.value = "";
-            updateCurrentRowUI();
-        }, 450);
-        return;
     }
 
     if (guesses.includes(currentGuess)) {
@@ -464,6 +515,10 @@ async function handleSubmit() {
             freeStreak++;
             if (freeStreak > freeMaxStreak) freeMaxStreak = freeStreak;
             saveFreeStreak();
+        } else if (gameMode === "hard") {
+            hardStreak++;
+            if (hardStreak > hardMaxStreak) hardMaxStreak = hardStreak;
+            saveHardStreak();
         } else if (gameMode === "daily") {
             const todayDate = new Date();
             todayDate.setHours(0, 0, 0, 0);
@@ -498,6 +553,12 @@ async function handleSubmit() {
         if (megidoInfo) {
             solvedMegidos.add(megidoInfo.id);
             saveSolvedMegidos();
+        } else if (typeof HARD_LIST !== 'undefined') {
+            const hardInfo = HARD_LIST.find(m => m.name === targetWord);
+            if (hardInfo) {
+                solvedHardMegidos.add(hardInfo.id);
+                saveHardSolvedMegidos();
+            }
         }
 
         bounceCurrentRow(rowIdx);
@@ -507,9 +568,13 @@ async function handleSubmit() {
         gameStatus = "FAIL";
         // ストリークをリセット
         if (gameMode === "free") {
-            freeLastStreak = freeStreak; // リセット前に今回のチェイン数を保存
+            freeLastStreak = freeStreak;
             freeStreak = 0;
             saveFreeStreak();
+        } else if (gameMode === "hard") {
+            hardLastStreak = hardStreak;
+            hardStreak = 0;
+            saveHardStreak();
         } else if (gameMode === "daily") {
             dailyLastStreak = dailyStreak;
             dailyStreak = 0;
@@ -562,6 +627,16 @@ function bounceCurrentRow(rowIdx) {
 
 function updateUI() {
     const answerDisplay = document.getElementById("answer-display");
+    
+    const helpHardMode = document.getElementById("help-hard-mode");
+    if (helpHardMode) {
+        if (gameMode === "hard") {
+            helpHardMode.classList.remove("d-none");
+        } else {
+            helpHardMode.classList.add("d-none");
+        }
+    }
+
     if (gameStatus !== "IN_PROGRESS") {
         inputContainer.classList.add("d-none");
         playAgainContainer.classList.remove("d-none");
@@ -597,10 +672,22 @@ function updateUI() {
         nextBtn.classList.remove("d-none");
     } else {
         modeBtn.textContent = "モード切替";
-        const currentDisplayStreak = (gameStatus === "FAIL") ? freeLastStreak : freeStreak;
-        document.getElementById("mode-subtitle").textContent = `🎮 フリーモード｜${currentDisplayStreak}チェイン（最大 ${freeMaxStreak}）`;
+        if (gameMode === "hard") {
+            const currentDisplayStreak = (gameStatus === "FAIL") ? hardLastStreak : hardStreak;
+            document.getElementById("mode-subtitle").textContent = `🌕 ハードモード｜${currentDisplayStreak}チェイン（最大 ${hardMaxStreak}）`;
+        } else {
+            const currentDisplayStreak = (gameStatus === "FAIL") ? freeLastStreak : freeStreak;
+            document.getElementById("mode-subtitle").textContent = `🎮 フリーモード｜${currentDisplayStreak}チェイン（最大 ${freeMaxStreak}）`;
+        }
         nextBtn.textContent = "もう一度遊ぶ";
         nextBtn.classList.remove("d-none");
+    }
+
+    const isHardUnlocked = (freeMaxStreak >= 10 || dailyMaxStreak >= 10);
+    if (gameMode === "free" && isHardUnlocked) {
+        modeBtn.classList.add("hard-next-btn");
+    } else {
+        modeBtn.classList.remove("hard-next-btn");
     }
 }
 
@@ -648,9 +735,9 @@ function showResult() {
     // ストリーク情報を設定して表示
     if (streakInfo) {
         const isWin = gameStatus === "WIN";
-        const streak = gameMode === "daily" ? dailyStreak : freeStreak;
-        const maxStreak = gameMode === "daily" ? dailyMaxStreak : freeMaxStreak;
-        const lastStreak = gameMode === "daily" ? dailyLastStreak : freeLastStreak;
+        const streak = gameMode === "daily" ? dailyStreak : gameMode === "hard" ? hardStreak : freeStreak;
+        const maxStreak = gameMode === "daily" ? dailyMaxStreak : gameMode === "hard" ? hardMaxStreak : freeMaxStreak;
+        const lastStreak = gameMode === "daily" ? dailyLastStreak : gameMode === "hard" ? hardLastStreak : freeLastStreak;
 
         if (isWin) {
             let maxStreakHtml = "";
@@ -698,6 +785,9 @@ function showResult() {
     if (gameMode === "daily") {
         const currentDisplayStreak = (gameStatus === "FAIL") ? dailyLastStreak : dailyStreak;
         document.getElementById("mode-subtitle").textContent = `📅 デイリーモード｜${currentDisplayStreak}チェイン`;
+    } else if (gameMode === "hard") {
+        const currentDisplayStreak = (gameStatus === "FAIL") ? hardLastStreak : hardStreak;
+        document.getElementById("mode-subtitle").textContent = `👿 ハードモード｜${currentDisplayStreak}チェイン（最大 ${hardMaxStreak}）`;
     } else {
         const currentDisplayStreak = (gameStatus === "FAIL") ? freeLastStreak : freeStreak;
         document.getElementById("mode-subtitle").textContent = `🎮 フリーモード｜${currentDisplayStreak}チェイン（最大 ${freeMaxStreak}）`;
@@ -706,7 +796,14 @@ function showResult() {
 
 // UI Event Listeners
 modeBtn.addEventListener("click", () => {
-    gameMode = gameMode === "daily" ? "free" : "daily";
+    const isHardUnlocked = (freeMaxStreak >= 10 || dailyMaxStreak >= 10);
+    if (gameMode === "daily") {
+        gameMode = "free";
+    } else if (gameMode === "free") {
+        gameMode = isHardUnlocked ? "hard" : "daily";
+    } else {
+        gameMode = "daily";
+    }
     initGame();
 });
 
@@ -715,9 +812,13 @@ giveupBtn.addEventListener("click", () => {
     if (confirm("降参してよいですか？\n勝算がない？")) {
         gameStatus = "FAIL";
         if (gameMode === "free") {
-            freeLastStreak = freeStreak; // リセット前に保存
+            freeLastStreak = freeStreak;
             freeStreak = 0;
             saveFreeStreak();
+        } else if (gameMode === "hard") {
+            hardLastStreak = hardStreak;
+            hardStreak = 0;
+            saveHardStreak();
         } else if (gameMode === "daily") {
             dailyLastStreak = dailyStreak;
             dailyStreak = 0;
@@ -809,6 +910,24 @@ function openListModal() {
                     <span class="megido-name" style="${nameStyle}">${m.name}</span>
                  </div>`;
     });
+    
+    // ハードモード用図鑑（gameModeに関わらず正解済みがいれば追加表示するか、ハード限定にするか。計画通りハード限定で表示）
+    if (gameMode === "hard" && typeof HARD_LIST !== 'undefined') {
+        html += `<h3 style="margin-top: 15px; border-bottom: 1px solid #bc13fe; color: #bc13fe; padding-bottom: 5px;">【モブメギド・ハルマ】</h3>`;
+        HARD_LIST.forEach(m => {
+            const isSolved = solvedHardMegidos.has(m.id);
+            if (isSolved) {
+                const isGuessed = guesses.includes(m.name);
+                const nameStyle = isGuessed ? "font-weight: bold; color: #a855f7;" : "";
+                html += `<div class="megido-list-item">
+                            <span style="width: 20px; display: inline-block; text-align: center; color: #bc13fe; flex-shrink: 0;">⭐</span>
+                            <span class="megido-id"></span> 
+                            <span class="megido-name" style="${nameStyle}">${m.name}</span>
+                         </div>`;
+            }
+        });
+    }
+
     megidoListContainer.innerHTML = html;
     listModal.classList.remove("hidden");
 }
@@ -849,7 +968,7 @@ nextBtn.addEventListener("click", () => {
 
 // Share logic
 function generateShareText() {
-    const title = `メギドWordle (${gameMode === "daily" ? "デイリーモード" : "フリーモード"})`;
+    const title = `メギドWordle (${gameMode === "daily" ? "デイリーモード" : gameMode === "hard" ? "ハードモード" : "フリーモード"})`;
     const attempt = gameStatus === "WIN" ? guesses.length : "X";
     const impulseIcon = impulseUsed ? "⚛️" : "";
     const header = `${title} ${attempt}/${GAME_MAX_GUESSES}${impulseIcon}\n`;
@@ -864,9 +983,15 @@ function generateShareText() {
         } else {
             chainText = freeLastStreak > 0 ? `${freeLastStreak}チェイン${getChainEmoji(freeLastStreak)}` : "";
         }
-        extraLine = chainText
-            ? `正解：${targetWord}　${chainText}\n`
-            : `正解：${targetWord}\n`;
+        extraLine = chainText ? `正解：${targetWord}　${chainText}\n` : `正解：${targetWord}\n`;
+    } else if (gameMode === "hard") {
+        let chainText = "";
+        if (gameStatus === "WIN") {
+            chainText = hardStreak > 0 ? `${hardStreak}チェイン！${getChainEmoji(hardStreak)}` : "";
+        } else {
+            chainText = hardLastStreak > 0 ? `${hardLastStreak}チェイン${getChainEmoji(hardLastStreak)}` : "";
+        }
+        extraLine = chainText ? `正解：${targetWord}　${chainText}\n` : `正解：${targetWord}\n`;
     } else if (gameMode === "daily") {
         let chainText = "";
         if (gameStatus === "WIN") {
@@ -950,9 +1075,27 @@ if (copyTextBtn) {
 }
 
 // Impulse Logic
+
+function getTargetHints() {
+    let hints = [];
+    if (MEGIDO_CHARACTERS.includes(targetWord)) {
+        if (typeof MEGIDO_HINTS !== 'undefined' && currentHintTheme && MEGIDO_HINTS[currentHintTheme]) {
+            hints = MEGIDO_HINTS[currentHintTheme];
+        }
+    } else if (typeof HARD_LIST !== 'undefined') {
+        const hardChar = HARD_LIST.find(m => m.name === targetWord);
+        if (hardChar && hardChar.hints && hardChar.hints.length > 0) {
+            hints = hardChar.hints;
+        } else {
+            hints = ["軍団員のメギドではありません"]; // モブ用のヒント代替テキスト
+        }
+    }
+    return hints;
+}
+
 function updateImpulseUI() {
     if (!impulseBtn || !energyCount) return;
-    const targetHints = (typeof MEGIDO_HINTS !== 'undefined' && currentHintTheme && MEGIDO_HINTS[currentHintTheme]) ? MEGIDO_HINTS[currentHintTheme] : [];
+    const targetHints = getTargetHints();
     
     if (targetHints.length === 0) {
         impulseBtn.disabled = true;
@@ -1018,7 +1161,7 @@ if (impulseBtn) {
         impulseUsed = true;
         currentEnergy = 0;
         
-        const targetHints = (typeof MEGIDO_HINTS !== 'undefined' && currentHintTheme && MEGIDO_HINTS[currentHintTheme]) ? MEGIDO_HINTS[currentHintTheme] : [];
+        const targetHints = getTargetHints();
         const availableHints = targetHints.filter(h => !revealedHints.includes(h));
         
         if (availableHints.length > 0) {
@@ -1056,153 +1199,10 @@ if (closeImpulseHelpBtn) {
 
 // Initialize
 loadFreeStreak(); // ストリークをlocalStorageから復元
+loadHardStreak(); // ハードモードのストリーク
 loadSolvedMegidos(); // 正解済みメギドを復元
+loadHardSolvedMegidos(); // ハードモード正解済み
 initGame();
 
 // === DEBUG / ADMIN TOOLS (Trigger: ?FF11) ===
-(function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (!urlParams.has('FF11')) return;
-
-    console.log("🛠️ Admin Mode Active");
-
-    // 1. Force Target Word (?debug=マルコシアス)
-    const debugTarget = urlParams.get('debug');
-    if (debugTarget && (typeof MEGIDO_CHARACTERS !== 'undefined' && MEGIDO_CHARACTERS.includes(debugTarget))) {
-        targetWord = debugTarget;
-        const possibleThemes = typeof MEGIDO_HINTS !== 'undefined' ? Object.keys(MEGIDO_HINTS).filter(key => key.replace(/[CRB]$/, '') === targetWord) : [];
-        currentHintTheme = possibleThemes.length > 0 ? possibleThemes[Math.floor(Math.random() * possibleThemes.length)] : targetWord;
-        console.log("🎯 Target forced to:", targetWord);
-        updateUI();
-    }
-
-    // 2. Set Streak (?chain=72)
-    const debugChain = urlParams.get('chain');
-    if (debugChain !== null) {
-        const val = parseInt(debugChain);
-        if (gameMode === "daily") dailyStreak = val; else freeStreak = val;
-        updateUI();
-    }
-
-    // 3. Set Energy (?energy=35)
-    const debugEnergy = urlParams.get('energy');
-    if (debugEnergy !== null) {
-        currentEnergy = parseInt(debugEnergy);
-        if (typeof updateImpulseUI === 'function') updateImpulseUI();
-    }
-
-    // 4. Force Hints (?hints=1)
-    if (urlParams.get('hints') === '1') {
-        revealAllHintsDebug();
-    }
-
-    // 5. Instant Status (?status=win/fail)
-    const debugStatus = urlParams.get('status');
-    if (debugStatus === 'win') { gameStatus = "WIN"; showResult(); }
-    else if (debugStatus === 'fail') { gameStatus = "FAIL"; showResult(); }
-
-    // 6. Reset All Data (?reset=1)
-    if (urlParams.get('reset') === '1') {
-        setTimeout(() => {
-            if (confirm("【警告】すべてのプレイデータをリセットしますか？\n（星マーク、チェイン記録などがすべて消去されます）")) {
-                resetAllData();
-            }
-        }, 500);
-    }
-
-    // --- Dynamic Debug Panel ---
-    createDebugPanel();
-
-    function revealAllHintsDebug() {
-        const targetHints = (typeof MEGIDO_HINTS !== 'undefined' && currentHintTheme && MEGIDO_HINTS[currentHintTheme]) ? MEGIDO_HINTS[currentHintTheme] : [];
-        revealedHints = [...targetHints];
-        if (typeof impulseHintsContainer !== 'undefined' && impulseHintsContainer) {
-            impulseHintsContainer.innerHTML = "";
-            revealedHints.forEach(hint => {
-                const div = document.createElement("div");
-                div.className = "impulse-hint-item";
-                div.textContent = typeof formatImpulseHint === 'function' ? formatImpulseHint(hint) : hint;
-                impulseHintsContainer.appendChild(div);
-            });
-        }
-        impulseUsed = true;
-        if (typeof updateImpulseUI === 'function') updateImpulseUI();
-    }
-
-    function resetAllData() {
-        localStorage.removeItem("megido-wordle-streak");
-        localStorage.removeItem("megido-wordle-solved");
-        localStorage.removeItem("megido-wordle-daily-streak");
-        const dateStr = `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}`;
-        localStorage.removeItem(`megido-wordle-${dateStr}`);
-        alert("データをリセットしました。ページをリロードします。");
-        window.location.href = window.location.pathname;
-    }
-
-    function createDebugPanel() {
-        const panel = document.createElement("div");
-        panel.id = "admin-panel";
-        panel.style.cssText = "position:fixed;top:0;left:0;right:0;background:rgba(20,20,30,0.95);border-bottom:2px solid #9370db;z-index:9999;padding:8px;font-family:sans-serif;font-size:12px;color:white;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.5);";
-        
-        panel.innerHTML = `
-            <b style="color:#bc13fe">🛠️ ADMIN</b>
-            <div style="display:flex;gap:4px">
-                <input type="text" id="db-target" placeholder="答え強制" style="width:80px;background:#111;color:#fff;border:1px solid #444;border-radius:3px;padding:2px">
-                <button id="db-apply-target" style="background:#9370db;border:none;color:white;padding:2px 6px;border-radius:3px;cursor:pointer">適用</button>
-            </div>
-            <div style="display:flex;gap:4px">
-                <input type="number" id="db-chain" placeholder="Chain" style="width:40px;background:#111;color:#fff;border:1px solid #444;border-radius:3px;padding:2px">
-                <button id="db-apply-chain" style="background:#9370db;border:none;color:white;padding:2px 6px;border-radius:3px;cursor:pointer">適用</button>
-            </div>
-            <button id="db-hint" style="background:#4b0082;border:none;color:white;padding:2px 8px;border-radius:3px;cursor:pointer">💡 ヒント全開</button>
-            <button id="db-win" style="background:#2d6a4f;border:none;color:white;padding:2px 8px;border-radius:3px;cursor:pointer">🏆 WIN</button>
-            <button id="db-fail" style="background:#8b0000;border:none;color:white;padding:2px 8px;border-radius:3px;cursor:pointer">💥 FAIL</button>
-            <button id="db-reset" style="background:#444;border:none;color:gray;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:10px">🗑️ RESET</button>
-        `;
-
-        document.body.appendChild(panel);
-        
-        document.getElementById("db-apply-target").onclick = () => {
-            const val = document.getElementById("db-target").value;
-            if (typeof MEGIDO_CHARACTERS !== 'undefined' && MEGIDO_CHARACTERS.includes(val)) {
-                targetWord = val;
-                const possibleThemes = typeof MEGIDO_HINTS !== 'undefined' ? Object.keys(MEGIDO_HINTS).filter(key => key.replace(/[CRB]$/, '') === targetWord) : [];
-                currentHintTheme = possibleThemes.length > 0 ? possibleThemes[Math.floor(Math.random() * possibleThemes.length)] : targetWord;
-                if (typeof showMessage === 'function') showMessage("Target Word: " + targetWord);
-                updateUI();
-            } else {
-                if (typeof showMessage === 'function') showMessage("Unknown Megido");
-            }
-        };
-
-        document.getElementById("db-apply-chain").onclick = () => {
-            const val = parseInt(document.getElementById("db-chain").value);
-            if (!isNaN(val)) {
-                if (gameMode === "daily") dailyStreak = val; else freeStreak = val;
-                updateUI();
-                if (typeof showMessage === 'function') showMessage("Streak set to " + val);
-            }
-        };
-
-        document.getElementById("db-hint").onclick = () => {
-            revealAllHintsDebug();
-            if (typeof showMessage === 'function') showMessage("Hints revealed");
-        };
-
-        document.getElementById("db-win").onclick = () => {
-            currentGuess = targetWord;
-            if (typeof handleSubmit === 'function') handleSubmit();
-        };
-
-        document.getElementById("db-fail").onclick = () => {
-            guesses = new Array(GAME_MAX_GUESSES).fill("ブネ");
-            gameStatus = "FAIL";
-            updateUI();
-            if (typeof showResult === 'function') showResult();
-        };
-
-        document.getElementById("db-reset").onclick = () => {
-            if (confirm("すべてのデータを消去しますか？")) resetAllData();
-        };
-    }
-})();
+// デバッグ機能は admin.js に分離されました。

@@ -40,6 +40,31 @@ body {
     justify-content: center;
     min-height: 100vh;
     overflow-y: hidden;
+    transition: background-color 0.3s ease;
+}
+
+body.hard-mode {
+    --bg-color: #1a0b2e;
+    --primary-color: #bc13fe;
+    --primary-hover: #a811e5;
+}
+
+body.hard-mode #mode-btn {
+    background-color: #d4af37; /* 元の金色 */
+    color: #000;
+}
+
+body.hard-mode #mode-btn:hover {
+    background-color: #b8962e;
+}
+
+#mode-btn.hard-next-btn {
+    background-color: #bc13fe;
+    color: #ffffff;
+}
+
+#mode-btn.hard-next-btn:hover {
+    background-color: #a811e5;
 }
 
 /* --- 源暎ラテミン適用箇所 --- */

@@ -130,6 +130,22 @@
                     <p><strong>フリーモード</strong></p>
                     <p>ランダムに出題されるメギドを何度も当てていくモードです。制限なしで連勝記録（チェイン）に挑戦できます。</p>
                 </div>
+                <div id="help-hard-mode" class="help-mode-item d-none">
+                    <p><strong>ハードモード</strong></p>
+                    <p>本編に登場した一部のメギドやハルマが答えに含まれるようになります。<br>
+                    中点は除外します（アルス・ノヴァ　→　アルスノヴァ）<br>
+                    固有名以外の部分は除外します（軍団長セメルーゼ　→　セメルーゼ）<br>
+                    <span style="display:block; font-size: 11px; color: #a1a1aa; margin-top: 6px; line-height: 1.4;">
+                    ※以下のキャラクタは扱いません<br>
+                    ・メギド体を複製・再利用したもの（ノラモデウス、アザー、アケルナル、メルクリウスなど）<br>
+                    ・メギドから分かたれたもの（サン、ムーン、ピヨピヨ、アザラク、メザラクなど）<br>
+                    ・自称メギドだが事実か怪しいもの（プロデューサー、カルコスなど）<br>
+                    ・固有メギドだがメギドとしての名前が登場しないもの（ロクサーン、死霊葬操人、妄戦ちゃん、大幻獣など）<br>
+                    ・アンチャーターであり、メギドでないもの（シニュム、プルクラ、ロクスなど）<br>
+                    ・固有名を持つが、メギドとして生まれえなかったもの（ゴウギ）<br>
+                    ・メギドの発生の根源となるが、メギドではないもの（カトルス・母なる白き妖蛆）
+                    </span></p>
+                </div>
             </div>
 
             <div class="help-footer-note">
@@ -173,7 +189,10 @@
     <!-- スクリプトの読み込み -->
     <script src="characters.js"></script>
     <script src="mob_characters.js"></script>
+    <script src="hard_characters.js"></script>
     <script src="hints.js"></script>
     <script src="script.js"></script>
+    <!-- 本番デプロイ時、admin.jsはアップロードしなくてOKです -->
+    <script src="admin.js"></script>
 </body>
 </html>
