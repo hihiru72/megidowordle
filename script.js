@@ -640,6 +640,12 @@ function updateUI() {
     if (gameStatus !== "IN_PROGRESS") {
         inputContainer.classList.add("d-none");
         playAgainContainer.classList.remove("d-none");
+        // ボタン文言をモードに応じて変更
+        if (playAgainBtn) {
+            playAgainBtn.textContent = (gameMode === "hard")
+                ? "もう一回あそぶ（ハードモード）"
+                : "もう一回あそぶ（フリーモード）";
+        }
         if (impulseBtn) impulseBtn.classList.add("d-none");
         
         // 失敗・降参時はbottom-controls内に正解を表示
