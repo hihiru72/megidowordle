@@ -26,6 +26,7 @@ let hardStreak = 0;
 let hardMaxStreak = 0;
 let hardLastStreak = 0;
 let solvedHardMegidos = new Set();
+let seenHardMegidos = new Set(); // 失敗・降参時に「見た」ハードキャラ（星なし）
 let solvedMegidos = new Set(); // 正解済みのメギドID（または名前）を保持
 
 // DOM Elements
@@ -161,6 +162,15 @@ function loadHardSolvedMegidos() {
 }
 function saveHardSolvedMegidos() {
     localStorage.setItem("megido-wordle-hard-solved", JSON.stringify([...solvedHardMegidos]));
+}
+function loadSeenHardMegidos() {
+    const saved = localStorage.getItem("megido-wordle-hard-seen");
+    if (saved) {
+        seenHardMegidos = new Set(JSON.parse(saved));
+    }
+}
+function saveSeenHardMegidos() {
+    localStorage.setItem("megido-wordle-hard-seen", JSON.stringify([...seenHardMegidos]));
 }
 function loadDailyStreak() {
     const saved = localStorage.getItem("megido-wordle-daily-streak");
@@ -575,6 +585,14 @@ async function handleSubmit() {
             hardLastStreak = hardStreak;
             hardStreak = 0;
             saveHardStreak();
+            // 失敗時：ハードキャラを「見た」リストに追加（星なし）
+            if (typeof HARD_LIST !== 'undefined') {
+                const hardInfo = HARD_LIST.find(m => m.name === targetWord);
+                if (hardInfo && !solvedHardMegidos.has(hardInfo.id)) {
+                    seenHardMegidos.add(hardInfo.id);
+                    saveSeenHardMegidos();
+                }
+            }
         } else if (gameMode === "daily") {
             dailyLastStreak = dailyStreak;
             dailyStreak = 0;
@@ -689,7 +707,7 @@ function updateUI() {
         nextBtn.classList.remove("d-none");
     }
 
-    const isHardUnlocked = (freeMaxStreak >= 10 || dailyMaxStreak >= 10);
+    const isHardUnlocked = (freeMaxStreak >= 1 || dailyMaxStreak >= 1);
     if (gameMode === "free" && isHardUnlocked) {
         modeBtn.classList.add("hard-next-btn");
     } else {
@@ -917,16 +935,21 @@ function openListModal() {
                  </div>`;
     });
     
-    // ハードモード用図鑑（gameModeに関わらず正解済みがいれば追加表示するか、ハード限定にするか。計画通りハード限定で表示）
+    // ハードモード用図鑑（ハードモード中のみ表示）
     if (gameMode === "hard" && typeof HARD_LIST !== 'undefined') {
         html += `<h3 style="margin-top: 15px; border-bottom: 1px solid #bc13fe; color: #bc13fe; padding-bottom: 5px;">【モブメギド・ハルマ】</h3>`;
         HARD_LIST.forEach(m => {
             const isSolved = solvedHardMegidos.has(m.id);
-            if (isSolved) {
+            const isSeen = seenHardMegidos.has(m.id);
+            if (isSolved || isSeen) {
                 const isGuessed = guesses.includes(m.name);
                 const nameStyle = isGuessed ? "font-weight: bold; color: #a855f7;" : "";
+                // 正解済みは⭐、失敗・降参時に見たものは空白（星なし）
+                const starMark = isSolved
+                    ? `<span style="width: 20px; display: inline-block; text-align: center; color: #bc13fe; flex-shrink: 0;">⭐</span>`
+                    : `<span style="width: 20px; display: inline-block; text-align: center; flex-shrink: 0;"></span>`;
                 html += `<div class="megido-list-item">
-                            <span style="width: 20px; display: inline-block; text-align: center; color: #bc13fe; flex-shrink: 0;">⭐</span>
+                            ${starMark}
                             <span class="megido-id"></span> 
                             <span class="megido-name" style="${nameStyle}">${m.name}</span>
                          </div>`;
@@ -1208,6 +1231,7 @@ loadFreeStreak(); // ストリークをlocalStorageから復元
 loadHardStreak(); // ハードモードのストリーク
 loadSolvedMegidos(); // 正解済みメギドを復元
 loadHardSolvedMegidos(); // ハードモード正解済み
+loadSeenHardMegidos(); // ハードモードで見たが未正解（失敗・降参）
 initGame();
 
 // === DEBUG / ADMIN TOOLS (Trigger: ?FF11) ===
