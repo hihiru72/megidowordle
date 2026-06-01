@@ -29,6 +29,10 @@ let solvedHardMegidos = new Set();
 let seenHardMegidos = new Set(); // 失敗・降参時に「見た」ハードキャラ（星なし）
 let solvedMegidos = new Set(); // 正解済みのメギドID（または名前）を保持
 
+// フリー・ハードモードの直近72回「正解」履歴（被り防止用）
+let freeHistory = [];
+let hardHistory = [];
+
 // DOM Elements
 const board = document.getElementById("board");
 const guessInput = document.getElementById("guess-input");
@@ -71,9 +75,9 @@ function mulberry32(a) {
     }
 }
 
-// Get today's seeded target（14日ブロックシャッフル方式）
-// ・同じ14日間のブロック内では同一メギドは絶対に出ない
-// ・ブロックをまたぐ偶然の被りは約14/全メギド数（約7%）とごく低い
+// Get today's seeded target（72日ブロックシャッフル方式）
+// ・同じ72日間のブロック内では同一メギドは絶対に出ない（72はメギド72の72）
+// ・ブロックをまたぐ偶然の被りは起き得る（「絶対に被らないわけではない」体験を維持）
 function getDailyTarget() {
     // 基準日（この方式の運用開始日）
     const baseDate = new Date("2026-04-24");
@@ -82,8 +86,8 @@ function getDailyTarget() {
     today.setHours(0, 0, 0, 0);
 
     const daysDiff = Math.floor((today - baseDate) / 86400000);
-    const blockNum = Math.floor(daysDiff / 14); // 何番目の14日ブロックか
-    const dayInBlock = ((daysDiff % 14) + 14) % 14; // ブロック内の何日目か（0〜13）
+    const blockNum = Math.floor(daysDiff / 72); // 何番目の72日ブロックか
+    const dayInBlock = ((daysDiff % 72) + 72) % 72; // ブロック内の何日目か（0〜71）
 
     // ブロック番号をシードにFisher-Yatesシャッフル
     const rand = mulberry32(blockNum * 2654435761 + 1013904223);
@@ -96,9 +100,41 @@ function getDailyTarget() {
     return arr[dayInBlock];
 }
 
+// 直近72回の「正解」を除外してランダム抽選（フリーモード用）
 function getRandomTarget() {
-    const index = Math.floor(Math.random() * MEGIDO_CHARACTERS.length);
-    return MEGIDO_CHARACTERS[index];
+    const candidates = MEGIDO_CHARACTERS.filter(name => !freeHistory.includes(name));
+    // 候補が尽きた場合（全員正解済みなど）は全体から選ぶ
+    const pool = candidates.length > 0 ? candidates : MEGIDO_CHARACTERS;
+    return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// 直近72回の「正解」を除外してランダム抽選（ハードモード用）
+function getRandomHardTarget() {
+    const allNames = [...MEGIDO_CHARACTERS];
+    if (typeof HARD_LIST !== 'undefined') allNames.push(...HARD_LIST.filter(m => m.isMajor).map(m => m.name));
+    const candidates = allNames.filter(name => !hardHistory.includes(name));
+    const pool = candidates.length > 0 ? candidates : allNames;
+    return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// 正解履歴を追加（直近72件のみ保持）
+function addToFreeHistory(name) {
+    freeHistory.push(name);
+    if (freeHistory.length > 72) freeHistory.shift();
+    localStorage.setItem("megido-wordle-free-history", JSON.stringify(freeHistory));
+}
+function addToHardHistory(name) {
+    hardHistory.push(name);
+    if (hardHistory.length > 72) hardHistory.shift();
+    localStorage.setItem("megido-wordle-hard-history", JSON.stringify(hardHistory));
+}
+function loadFreeHistory() {
+    const saved = localStorage.getItem("megido-wordle-free-history");
+    if (saved) freeHistory = JSON.parse(saved);
+}
+function loadHardHistory() {
+    const saved = localStorage.getItem("megido-wordle-hard-history");
+    if (saved) hardHistory = JSON.parse(saved);
 }
 
 // フリーモードストリークの読み込み
@@ -234,9 +270,7 @@ function initGame() {
             resultTimer = setTimeout(showResult, 500);
         }
     } else if (gameMode === "hard") {
-        const allNames = [...MEGIDO_CHARACTERS];
-        if (typeof HARD_LIST !== 'undefined') allNames.push(...HARD_LIST.filter(m => m.isMajor).map(m => m.name));
-        targetWord = allNames[Math.floor(Math.random() * allNames.length)];
+        targetWord = getRandomHardTarget(); // 直近72回正解を除外して抽選
         guesses = [];
         gameStatus = "IN_PROGRESS";
         currentEnergy = 0;
@@ -571,6 +605,13 @@ async function handleSubmit() {
             }
         }
 
+        // 被り防止：正解したメギドを直近72回履歴に追加（失敗・降参時は追加しない）
+        if (gameMode === "free") {
+            addToFreeHistory(targetWord);
+        } else if (gameMode === "hard") {
+            addToHardHistory(targetWord);
+        }
+
         bounceCurrentRow(rowIdx);
         if (resultTimer) clearTimeout(resultTimer);
         resultTimer = setTimeout(showResult, 1150);
@@ -843,6 +884,14 @@ giveupBtn.addEventListener("click", () => {
             hardLastStreak = hardStreak;
             hardStreak = 0;
             saveHardStreak();
+            // 降参時：ハードキャラを「見た」リストに追加（星なし）
+            if (typeof HARD_LIST !== 'undefined') {
+                const hardInfo = HARD_LIST.find(m => m.name === targetWord);
+                if (hardInfo && !solvedHardMegidos.has(hardInfo.id)) {
+                    seenHardMegidos.add(hardInfo.id);
+                    saveSeenHardMegidos();
+                }
+            }
         } else if (gameMode === "daily") {
             dailyLastStreak = dailyStreak;
             dailyStreak = 0;
@@ -1232,6 +1281,8 @@ loadHardStreak(); // ハードモードのストリーク
 loadSolvedMegidos(); // 正解済みメギドを復元
 loadHardSolvedMegidos(); // ハードモード正解済み
 loadSeenHardMegidos(); // ハードモードで見たが未正解（失敗・降参）
+loadFreeHistory(); // フリーモード直近72回正解履歴
+loadHardHistory(); // ハードモード直近72回正解履歴
 initGame();
 
 // === DEBUG / ADMIN TOOLS (Trigger: ?FF11) ===
