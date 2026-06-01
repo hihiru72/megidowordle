@@ -1,4 +1,4 @@
-const GAME_MAX_GUESSES = 10;
+let maxGuesses = 10;
 let targetWord = "";
 let currentGuess = "";
 let guesses = [];
@@ -227,7 +227,7 @@ const getChainEmoji = (chain) => {
 };
 
 function formatImpulseHint(hint) {
-    const isLastOne = guesses.length >= (GAME_MAX_GUESSES - 1);
+    const isLastOne = guesses.length >= (maxGuesses - 1);
     
     if (hint.startsWith("__TRANCE__:")) {
         const name = hint.replace("__TRANCE__:", "");
@@ -243,6 +243,7 @@ function formatImpulseHint(hint) {
 }
 
 function initGame() {
+    maxGuesses = 10;
     loadDailyStreak(); // ここでロードして最新状態にする
 
     if (resultTimer) {
@@ -299,7 +300,7 @@ function initGame() {
     board.innerHTML = "";
     
     // Create Grid
-    for (let i = 0; i < GAME_MAX_GUESSES; i++) {
+    for (let i = 0; i < maxGuesses; i++) {
         const row = document.createElement("div");
         row.className = "tile-row";
         row.style.gridTemplateColumns = `repeat(${MAX_WORD_LENGTH}, 1fr)`;
@@ -345,7 +346,8 @@ function saveDailyState() {
         currentEnergy: currentEnergy,
         revealedHints: revealedHints,
         impulseUsed: impulseUsed,
-        currentHintTheme: currentHintTheme
+        currentHintTheme: currentHintTheme,
+        maxGuesses: maxGuesses
     };
     localStorage.setItem(`megido-wordle-${dateStr}`, JSON.stringify(state));
 }
@@ -361,6 +363,7 @@ function loadDailyState() {
         revealedHints = state.revealedHints || [];
         impulseUsed = state.impulseUsed || false;
         currentHintTheme = state.currentHintTheme || null;
+        maxGuesses = state.maxGuesses || 10;
     } else {
         guesses = [];
         gameStatus = "IN_PROGRESS";
@@ -368,6 +371,7 @@ function loadDailyState() {
         revealedHints = [];
         impulseUsed = false;
         currentHintTheme = null;
+        maxGuesses = 10;
     }
 }
 
@@ -389,7 +393,7 @@ function showMessage(msg, duration = 2000) {
 
 function updateCurrentRowUI() {
     const rowIdx = guesses.length;
-    if (rowIdx >= GAME_MAX_GUESSES) return;
+    if (rowIdx >= maxGuesses) return;
 
     for (let i = 0; i < MAX_WORD_LENGTH; i++) {
         const tile = document.getElementById(`tile-${rowIdx}-${i}`);
@@ -615,7 +619,7 @@ async function handleSubmit() {
         bounceCurrentRow(rowIdx);
         if (resultTimer) clearTimeout(resultTimer);
         resultTimer = setTimeout(showResult, 1150);
-    } else if (guesses.length >= GAME_MAX_GUESSES) {
+    } else if (guesses.length >= maxGuesses) {
         gameStatus = "FAIL";
         // ストリークをリセット
         if (gameMode === "free") {
@@ -1049,7 +1053,7 @@ function generateShareText() {
     const title = `メギドWordle (${gameMode === "daily" ? "デイリーモード" : gameMode === "hard" ? "ハードモード" : "フリーモード"})`;
     const attempt = gameStatus === "WIN" ? guesses.length : "X";
     const impulseIcon = impulseUsed ? "⚛️" : "";
-    const header = `${title} ${attempt}/${GAME_MAX_GUESSES}${impulseIcon}\n`;
+    const header = `${title} ${attempt}/${maxGuesses}${impulseIcon}\n`;
 
     // 「正解：名前　(チェイン)」行を追加
     let extraLine = "";
@@ -1081,7 +1085,7 @@ function generateShareText() {
         extraLine = chainText ? `${chainText}\n` : "";
     }
     
-    let lines = new Array(GAME_MAX_GUESSES).fill("");
+    let lines = new Array(maxGuesses).fill("");
     
     guesses.forEach((guess, index) => {
         let targetArr = targetWord.split("");
@@ -1272,6 +1276,105 @@ const closeImpulseHelpBtn = document.getElementById("close-impulse-help-btn");
 if (closeImpulseHelpBtn) {
     closeImpulseHelpBtn.addEventListener("click", () => {
         if (impulseHelpModal) impulseHelpModal.classList.add("hidden");
+    });
+}
+
+// --- 指輪の強制力（長押し）ロジック ---
+let forceTimer = null;
+
+function clearForceTimer() {
+    if (forceTimer) {
+        clearTimeout(forceTimer);
+        forceTimer = null;
+    }
+    if (impulseBtn) {
+        impulseBtn.classList.remove("shake-intense");
+    }
+}
+
+if (impulseBtn) {
+    // スマホでの長押し時にコンテキストメニューが出るのを防ぐ
+    impulseBtn.addEventListener("contextmenu", e => e.preventDefault());
+
+    const startForceTimer = (e) => {
+        // 条件判定：手数2回以下、合計文字数10以下、インパルス未使用、ゲーム進行中
+        if (gameStatus !== "IN_PROGRESS" || impulseUsed || guesses.length > 2) return;
+        
+        const totalChars = guesses.join("").length;
+        if (totalChars > 10) return;
+
+        if (forceTimer) return;
+
+        impulseBtn.classList.add("shake-intense");
+        
+        forceTimer = setTimeout(() => {
+            clearForceTimer();
+            const forceModal = document.getElementById("force-impulse-modal");
+            if (forceModal) forceModal.classList.remove("hidden");
+        }, 2000);
+    };
+
+    impulseBtn.addEventListener("mousedown", startForceTimer);
+    impulseBtn.addEventListener("touchstart", startForceTimer, { passive: true });
+    
+    impulseBtn.addEventListener("mouseup", clearForceTimer);
+    impulseBtn.addEventListener("mouseleave", clearForceTimer);
+    impulseBtn.addEventListener("touchend", clearForceTimer);
+    impulseBtn.addEventListener("touchcancel", clearForceTimer);
+}
+
+// 強制力モーダルロジック
+const forceModal = document.getElementById("force-impulse-modal");
+const forceBtn = document.getElementById("force-impulse-btn");
+if (forceModal) {
+    forceModal.addEventListener("click", (e) => {
+        // モーダル外枠クリックで閉じる
+        if (e.target === forceModal) {
+            forceModal.classList.add("hidden");
+        }
+    });
+}
+if (forceBtn) {
+    forceBtn.addEventListener("click", () => {
+        if (forceModal) forceModal.classList.add("hidden");
+        
+        // ペナルティ適用：最大回数を5に減らす
+        maxGuesses = 5;
+        
+        // UIアニメーション（下5行を消す）
+        const rows = board.querySelectorAll('.tile-row');
+        for (let i = 5; i < 10; i++) {
+            if (rows[i]) {
+                rows[i].classList.add("row-vanish");
+            }
+        }
+        
+        // 強制的にヒントを3つ開示する
+        impulseUsed = true;
+        const targetHints = getTargetHints();
+        const availableHints = targetHints.filter(h => !revealedHints.includes(h));
+        
+        if (availableHints.length > 0) {
+            for (let i = availableHints.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [availableHints[i], availableHints[j]] = [availableHints[j], availableHints[i]];
+            }
+
+            const pickedHints = availableHints.slice(0, Math.min(3, availableHints.length));
+            revealedHints.push(...pickedHints);
+
+            pickedHints.forEach(hint => {
+                const div = document.createElement("div");
+                div.className = "impulse-hint-item";
+                div.textContent = formatImpulseHint(hint);
+                if (impulseHintsContainer) impulseHintsContainer.appendChild(div);
+            });
+        }
+        updateImpulseUI();
+        
+        if (gameMode === "daily") {
+            saveDailyState();
+        }
     });
 }
 

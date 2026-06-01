@@ -44,8 +44,8 @@ def convert_csv_to_hints():
                     
                 # 飛行特性
                 flying = row.get('飛行している', '').strip()
-                if flying in ['〇', '○', 'あり', '1', 'True', 'true']:
-                    hints.append("該当のメギドは、飛行特性により地形の影響を受けない")
+                if flying in ['〇', '○', 'あり', '1', 'True', 'true', '飛行']:
+                    hints.append("飛行特性により、地形の影響を受けない")
                     
                 # 攻撃回数
                 atk_count = row.get('攻撃回数(シフト後も含む）', '').strip()
